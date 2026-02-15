@@ -1,0 +1,15 @@
+# Rendered output (can be very large)
+output/
+
+# Blender temp/backup files
+*.blend1
+*.blend2
+*.blend~
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
