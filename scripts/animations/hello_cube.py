@@ -19,7 +19,7 @@ project_root = os.getcwd()
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from scripts.utils.scene import clear_scene, setup_camera, setup_world_color, setup_render, setup_area_light
+from scripts.utils.scene import clear_scene, setup_camera, setup_world_color, setup_render, setup_area_light, frames_to_video
 from scripts.utils.materials import create_principled_material, assign_material
 from scripts.utils.animation import animate_property, ease_in_out_cubic, set_keyframe
 
@@ -37,13 +37,12 @@ setup_area_light(location=(4, -3, 6), energy=300, size=4)
 setup_area_light(location=(-3, 4, 3), energy=100, size=2)
 setup_world_color(color=(0.02, 0.02, 0.04, 1.0))  # Dark blue-black
 setup_render(
-    engine='BLENDER_EEVEE_NEXT',
+    engine='BLENDER_EEVEE',
     resolution=(1920, 1080),
     fps=FPS,
     frame_start=FRAME_START,
     frame_end=FRAME_END,
-    output_path='./output/hello_cube',
-    file_format='FFMPEG',
+    output_path='./output/hello_cube/',
 )
 
 # ──────────────────────────────────────────────
@@ -109,9 +108,14 @@ for frame in range(FRAME_START, FRAME_END + 1):
 # ──────────────────────────────────────────────
 
 if "--background" in sys.argv or "-b" in sys.argv:
-    print("🎬 Rendering animation...")
+    print("🎬 Rendering animation frames...")
     bpy.ops.render.render(animation=True)
-    print("✅ Done! Output saved to ./output/")
+    print("✅ Frames rendered! Stitching video...")
+    frames_to_video(
+        frames_dir='./output/hello_cube/',
+        output_file='./output/hello_cube.mp4',
+        fps=FPS,
+    )
 else:
     print("👀 Opened in GUI mode — press Space in the viewport to preview the animation.")
     print("   To render, go to Render > Render Animation (Ctrl+F12)")

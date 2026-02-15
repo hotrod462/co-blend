@@ -67,15 +67,23 @@ def setup_world_color(color=(0.05, 0.05, 0.08, 1.0)):
 
 
 def setup_render(
-    engine='BLENDER_EEVEE_NEXT',
+    engine='BLENDER_EEVEE',
     resolution=(1920, 1080),
     fps=30,
     frame_start=1,
     frame_end=120,
-    output_path='./output/',
-    file_format='FFMPEG',
+    output_path='./output/frames/',
+    file_format='PNG',
 ):
-    """Configure render settings."""
+    """
+    Configure render settings.
+
+    Renders to PNG frame sequences by default, which is more robust than
+    direct FFMPEG output (supports resuming interrupted renders, lossless
+    intermediate frames, and flexible re-encoding).
+
+    Use frames_to_video() after rendering to stitch frames into an MP4.
+    """
     scene = bpy.context.scene
     scene.render.engine = engine
     scene.render.resolution_x = resolution[0]
@@ -83,15 +91,57 @@ def setup_render(
     scene.render.fps = fps
     scene.frame_start = frame_start
     scene.frame_end = frame_end
+
+    # Ensure output path ends with a separator for frame numbering
+    if not output_path.endswith('/'):
+        output_path += '/'
     scene.render.filepath = output_path
 
-    if file_format == 'FFMPEG':
-        scene.render.image_settings.file_format = 'FFMPEG'
-        scene.render.ffmpeg.format = 'MPEG4'
-        scene.render.ffmpeg.codec = 'H264'
-        scene.render.ffmpeg.constant_rate_factor = 'MEDIUM'
-    elif file_format == 'PNG':
-        scene.render.image_settings.file_format = 'PNG'
+    scene.render.image_settings.file_format = file_format
+    if file_format == 'PNG':
+        scene.render.image_settings.color_mode = 'RGBA'
+        scene.render.image_settings.compression = 15
+
+
+def frames_to_video(frames_dir='./output/frames/', output_file='./output/animation.mp4', fps=30):
+    """
+    Stitch rendered PNG frames into an MP4 video using ffmpeg CLI.
+    Call this after bpy.ops.render.render(animation=True).
+
+    Requires ffmpeg to be installed (brew install ffmpeg).
+    """
+    import subprocess
+    import glob
+    import os
+
+    # Find the frame pattern (Blender outputs as 0001.png, 0002.png, etc.)
+    frames = sorted(glob.glob(os.path.join(frames_dir, '*.png')))
+    if not frames:
+        print(f"⚠️  No PNG frames found in {frames_dir}")
+        return
+
+    print(f"🎬 Stitching {len(frames)} frames into {output_file}...")
+
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    cmd = [
+        'ffmpeg', '-y',                         # Overwrite output
+        '-framerate', str(fps),                  # Input framerate
+        '-i', os.path.join(frames_dir, '%04d.png'),  # Frame pattern
+        '-c:v', 'libx264',                      # H.264 codec
+        '-crf', '18',                            # Quality (lower = better, 18 is visually lossless)
+        '-pix_fmt', 'yuv420p',                   # Compatibility
+        '-preset', 'medium',                     # Encoding speed/quality tradeoff
+        output_file,
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"✅ Video saved to {output_file}")
+    else:
+        print(f"❌ ffmpeg failed: {result.stderr}")
+        print("   Make sure ffmpeg is installed: brew install ffmpeg")
 
 
 def mathutils_vector(v):
