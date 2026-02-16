@@ -218,9 +218,17 @@ Multi-file animations get their own directory:
 ```
 scripts/animations/finding_the_one/
 ├── STORYBOARD.md           # Detailed animation script
-├── finding_the_one.py      # Main animation code
-├── characters.py           # Character creation helpers (optional)
-└── movements.py            # Movement path definitions (optional)
+├── finding_the_one.py      # Main orchestrator (imports + calls all acts)
+├── config.py               # All constants, timing, curves
+├── helpers.py              # Keyframing shortcuts (kf_loc, etc.)
+├── characters.py           # Shape creation factories
+├── systems.py              # Scrolling camera, trails, BG management
+├── prologue.py             # Frames 1–330: The Birth
+├── act1.py                 # Frames 330–990: The Journey Begins
+├── act2.py                 # Frames 990–1650: False Hopes
+├── valley.py               # Frames 1650–1800: Almost Gave Up
+├── act3.py                 # Frames 1800–2460: Discovery
+└── act4.py                 # Frames 2460–3150: Union
 ```
 
 The main script file should match the directory name.

@@ -232,20 +232,42 @@ def _watch_timer():
     except OSError:
         return POLL_INTERVAL
 
-    # Also check utils directory for changes
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(filepath)))
+    # Find project root robustly
+    curr = os.path.dirname(os.path.abspath(filepath))
+    project_root = None
+    while curr != os.path.dirname(curr):
+        if os.path.isdir(os.path.join(curr, "scripts")) and os.path.isdir(os.path.join(curr, "addons")):
+            project_root = curr
+            break
+        curr = os.path.dirname(curr)
+    if project_root is None:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(filepath)))
+
+    # Check utils directory for changes
     utils_dir = os.path.join(project_root, "scripts", "utils")
-    utils_mtime = 0.0
+    extra_mtime = 0.0
     if os.path.isdir(utils_dir):
         for f in os.listdir(utils_dir):
             if f.endswith('.py'):
                 try:
                     mt = os.path.getmtime(os.path.join(utils_dir, f))
-                    utils_mtime = max(utils_mtime, mt)
+                    extra_mtime = max(extra_mtime, mt)
                 except OSError:
                     pass
 
-    effective_mtime = max(current_mtime, utils_mtime)
+    # Also check the script's own directory for sibling modules
+    # (e.g. config.py, characters.py, act1.py in a multi-file project)
+    script_dir = os.path.dirname(os.path.abspath(filepath))
+    if os.path.isdir(script_dir):
+        for f in os.listdir(script_dir):
+            if f.endswith('.py'):
+                try:
+                    mt = os.path.getmtime(os.path.join(script_dir, f))
+                    extra_mtime = max(extra_mtime, mt)
+                except OSError:
+                    pass
+
+    effective_mtime = max(current_mtime, extra_mtime)
 
     if effective_mtime != state["last_mtime"]:
         if not state["debounce_pending"]:
