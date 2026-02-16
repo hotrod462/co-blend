@@ -27,6 +27,7 @@ from scripts.animations.finding_the_one.config import (
     TRAIL_LENGTH_FAST, TRAIL_LENGTH_RACING,
     TRAIL_BRIGHTNESS_STOP, TRAIL_BRIGHTNESS_SLOW, TRAIL_BRIGHTNESS_NORMAL,
     TRAIL_BRIGHTNESS_FAST, TRAIL_BRIGHTNESS_RACING,
+    SEEKER_SIZE,
 )
 from scripts.animations.finding_the_one.helpers import (
     kf_loc, kf_scale, kf_emission_strength, kf_ortho_scale,
@@ -204,6 +205,8 @@ def animate_background_triangles(bg_triangles, seeker_world_positions):
     they appear from the right and exit left. We also fade them based
     on the density curve — when density drops, distant triangles fade out.
 
+    Triangles gently bob around their home positions with visible movement.
+
     Args:
         bg_triangles: list of (obj, mat, world_x, world_y) from characters.py
         seeker_world_positions: dict of frame → world_x from scroll schedule
@@ -235,19 +238,30 @@ def animate_background_triangles(bg_triangles, seeker_world_positions):
                 if f % 10 == 0 or f == FRAME_START:
                     kf_emission_strength(mat, 0.0, f)
 
-    # Add slow rotation to each BG triangle
+    # Add visible movement to each BG triangle — bobbing around home positions
     import random
     random.seed(99)
     for obj, mat, wx, wy in bg_triangles:
-        rot_speed = random.uniform(-0.002, 0.002)  # radians per frame
-        drift_y = random.uniform(-0.0005, 0.0005)  # slow Y drift per frame
+        # Each triangle gets its own movement pattern
+        rot_speed = random.uniform(-0.02, 0.02)      # radians per frame — 10x bigger
+        drift_radius = random.uniform(0.3, 0.8)       # how far they bob from home
+        drift_speed_x = random.uniform(0.005, 0.015)  # bob frequency X
+        drift_speed_y = random.uniform(0.005, 0.015)  # bob frequency Y
+        phase_x = random.uniform(0, 2 * math.pi)      # phase offset
+        phase_y = random.uniform(0, 2 * math.pi)
 
-        for f in range(FRAME_START, FRAME_END + 1, 5):  # every 5 frames for perf
+        for f in range(FRAME_START, FRAME_END + 1, 3):  # every 3 frames for perf
+            # Gentle rotation
             angle = rot_speed * f
             obj.rotation_euler[2] = angle
             obj.keyframe_insert(data_path="rotation_euler", index=2, frame=f)
-            # Slight Y drift
-            obj.location[1] = wy + drift_y * f
+
+            # Bob around home position in a figure-8 / lissajous pattern
+            bob_x = drift_radius * math.sin(drift_speed_x * f + phase_x)
+            bob_y = drift_radius * math.cos(drift_speed_y * f + phase_y)
+            obj.location[0] = wx + bob_x
+            obj.location[1] = wy + bob_y
+            obj.keyframe_insert(data_path="location", index=0, frame=f)
             obj.keyframe_insert(data_path="location", index=1, frame=f)
 
 
@@ -284,7 +298,7 @@ def create_trail_lines(seeker, the_one=None):
     In the paired phase (Act IV), four trail lines are used.
     """
     trails = []
-    half = 0.3  # half of square size
+    half = SEEKER_SIZE / 2  # Use actual seeker size
 
     for i, (name, y_off) in enumerate([
         ("TrailTopLeft", half),
@@ -307,18 +321,34 @@ def animate_trail_lines(trails, seeker_world_positions, scroll_speeds, paired_fr
     """
     Animate trail line length and brightness based on scroll speed.
 
+    Trails are positioned relative to the Seeker and extend leftward.
+    Only visible when the Seeker is actively scrolling (prologue excluded).
+
     Args:
         trails: list of (trail_obj, mat, y_offset) from create_trail_lines
         seeker_world_positions: frame → world_x
         scroll_speeds: frame → speed
         paired_from: frame number when pairing happens (4 trails active)
     """
+    # Trails should only appear after the prologue scrolling begins
+    TRAIL_VISIBLE_FROM = 300
+
     for f in range(FRAME_START, FRAME_END + 1):
-        if f % 3 != 0 and f != FRAME_START:  # every 3 frames for performance
+        if f % 2 != 0 and f != FRAME_START:  # every 2 frames for smoother display
             continue
 
         speed = scroll_speeds.get(f, 0)
         wx = seeker_world_positions.get(f, 0)
+
+        # Before scrolling starts, hide trails completely
+        if f < TRAIL_VISIBLE_FROM:
+            for trail, mat, y_off in trails:
+                trail.location = (-60, 0, -0.005)
+                trail.keyframe_insert(data_path="location", frame=f)
+                trail.scale = (0.01, 0.02, 1)
+                trail.keyframe_insert(data_path="scale", frame=f)
+                kf_emission_strength(mat, 0.0, f)
+            continue
 
         # Map speed to trail length and brightness
         if speed <= 0.005:
@@ -343,8 +373,10 @@ def animate_trail_lines(trails, seeker_world_positions, scroll_speeds, paired_fr
 
         for trail, mat, y_off in trails:
             # Trail position: left of Seeker, at the corner's Y offset
-            trail_x = wx - length / 2 - 0.3  # offset left of square edge
-            kf_loc(trail, trail_x, y_off, f)
+            half = SEEKER_SIZE / 2
+            trail_x = wx - half - length / 2  # anchored at left edge of square
+            trail.location = (trail_x, y_off, -0.005)
+            trail.keyframe_insert(data_path="location", frame=f)
             trail.scale = (max(length, 0.05), 0.02, 1)
             trail.keyframe_insert(data_path="scale", frame=f)
             kf_emission_strength(mat, brightness, f)

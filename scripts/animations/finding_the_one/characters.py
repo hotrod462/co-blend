@@ -184,35 +184,31 @@ def create_the_one():
 def create_background_triangles(count=BG_TRI_COUNT, seed=42):
     """
     Pre-place background triangles along the world path.
-    They are scattered across ~110 world units of X, with random Y and sizes.
+    All background triangles are equilateral and the same size (0.4 units)
+    for visual consistency.
 
     Returns: list of (obj, mat, world_x, world_y) tuples
     """
     random.seed(seed)
     triangles = []
 
+    BG_TRI_UNIFORM_SIZE = 0.4  # All same size
+
     for i in range(count):
         # Distribute along the world path
         world_x = random.uniform(-5, WORLD_PATH_LENGTH + 5)
         world_y = random.uniform(-4.5, 4.5)
-        size = random.uniform(BG_TRI_SIZE_MIN, BG_TRI_SIZE_MAX)
         gray = random.uniform(BG_TRI_FILL_GRAY_MIN, BG_TRI_FILL_GRAY_MAX)
 
-        # Randomly choose triangle type
-        tri_type = random.choice(["equilateral", "right", "iso"])
         name = f"BgTri_{i:03d}"
 
         mat = create_emission_material(
             f"{name}Mat", color=(gray, gray, gray, 1), strength=BG_TRI_EMISSION
         )
 
-        if tri_type == "equilateral":
-            obj = _create_equilateral_tri(name, size, location=(world_x, world_y, -0.01))
-        elif tri_type == "right":
-            obj = _create_right_angle_tri(name, size, location=(world_x, world_y, -0.01))
-        else:
-            obj = _create_isosceles_tri(name, size, size * 1.3,
-                                        location=(world_x, world_y, -0.01))
+        # All equilateral, same size
+        obj = _create_equilateral_tri(name, BG_TRI_UNIFORM_SIZE,
+                                       location=(world_x, world_y, -0.01))
 
         assign_material(obj, mat)
 

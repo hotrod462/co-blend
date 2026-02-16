@@ -35,14 +35,21 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
     """
 
     # ── Frames 1650–1690 (first 1.3s) ────────────────────────
+    # Transition from Act 2 end (Y ≈ -0.5) to flatlined drift
     # Y-drift flatlined, emission dimming, barely moving
     for f in range(1650, 1691):
         t = (f - 1650) / 40.0
         wx = seeker_world_positions.get(f, 0)
-        # Flatlined Y-drift: ±0.2
-        y = 0.1 * math.sin(f * 0.05)
+        # Smooth transition from -0.5 to near-zero flatline
+        base_y = lerp(-0.5, 0, ease_in_out_cubic(min(t * 2, 1.0)))
+        # Tiny flatlined drift: ±0.1
+        y = base_y + 0.1 * math.sin(f * 0.05)
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
+
+    # Keep The One hidden during early valley
+    for f in range(1650, 1740):
+        kf_loc(the_one, -60, 0, f)
 
     # Weak pulse
     apply_pulse(seeker, 1650, 1690, period=60, amplitude=0.02)

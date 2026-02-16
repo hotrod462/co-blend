@@ -23,28 +23,6 @@ from scripts.animations.finding_the_one.helpers import (
 )
 
 
-def _square_orbit(obj, center_x, center_y, frame_start, frame_end, radius):
-    """Move in a square-shaped orbit (4 straight segments with sharp corners)."""
-    total = frame_end - frame_start
-    for f in range(frame_start, frame_end + 1):
-        t = (f - frame_start) / max(total, 1)
-        # 4 segments: right, top, left, bottom
-        seg = t * 4
-        if seg < 1:
-            x = center_x + radius
-            y = center_y - radius + 2 * radius * seg
-        elif seg < 2:
-            x = center_x + radius - 2 * radius * (seg - 1)
-            y = center_y + radius
-        elif seg < 3:
-            x = center_x - radius
-            y = center_y + radius - 2 * radius * (seg - 2)
-        else:
-            x = center_x - radius + 2 * radius * (seg - 3)
-            y = center_y - radius
-        kf_loc(obj, x, y, f)
-
-
 def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
                  seeker_world_positions, seeker_y_out,
                  camera):
@@ -61,6 +39,7 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
     # ── Beat 2.1: Isosceles Entrance (Frames 990–1110) ───────
     # Enters from upper-right, rigid mechanical approach
+    # Transition: Seeker ends Act I at Y=0, start smoothly from there
     for f in range(990, 1111):
         t = (f - 990) / 120.0
         wx = seeker_world_positions.get(f, 0)
@@ -86,69 +65,72 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         # Rigid: no rotation wobble
         kf_rot_z(iso_tri, 0, f)
 
-        # Seeker holds
+        # Seeker holds near center
         seeker_y_out[f] = 0
         kf_loc(seeker, wx, 0, f)
 
     apply_pulse(seeker, 990, 1110, period=45, amplitude=0.03)
 
     # ── Beat 2.2: Stiff Interaction (Frames 1110–1350) ────────
-    # Angular orbit at radius 1.5, straight segments + 90° turns (1110–1170)
+    # MUTUAL angular orbit — both orbit around midpoint with square-shaped paths
+    # (1110–1170): radius 1.5, angular orbit
     for f in range(1110, 1171):
         t = (f - 1110) / 60.0
         wx = seeker_world_positions.get(f, 0)
 
-        # Square-shaped orbit
+        # Center point between them
+        cx = wx
+        cy = 0
+
+        # Square-shaped orbit for angular/mechanical feel
         seg = t * 4
         radius = 1.5
         if seg < 1:
-            tri_ox = radius
-            tri_oy = -radius + 2 * radius * seg
+            ox = radius
+            oy = -radius + 2 * radius * seg
         elif seg < 2:
-            tri_ox = radius - 2 * radius * (seg - 1)
-            tri_oy = radius
+            ox = radius - 2 * radius * (seg - 1)
+            oy = radius
         elif seg < 3:
-            tri_ox = -radius
-            tri_oy = radius - 2 * radius * (seg - 2)
+            ox = -radius
+            oy = radius - 2 * radius * (seg - 2)
         else:
-            tri_ox = -radius + 2 * radius * (seg - 3)
-            tri_oy = -radius
+            ox = -radius + 2 * radius * (seg - 3)
+            oy = -radius
 
-        kf_loc(iso_tri, wx + tri_ox, tri_oy, f)
+        # Triangle and Seeker orbit opposite each other
+        kf_loc(iso_tri, cx + ox, cy + oy, f)
+        kf_loc(seeker, cx - ox, cy - oy, f)
         kf_rot_z(iso_tri, 0, f)
+        seeker_y_out[f] = cy - oy
 
-        # Seeker tries to track
-        chase_x = wx + tri_ox * 0.3  # lags behind
-        chase_y = tri_oy * 0.3
-        seeker_y_out[f] = chase_y
-        kf_loc(seeker, chase_x, chase_y, f)
-
-    # Orbit tightens to 1.0, still angular (1170–1210)
+    # (1170–1210): Orbit tightens to 1.0, still angular, mutual
     for f in range(1170, 1211):
         t = (f - 1170) / 40.0
         wx = seeker_world_positions.get(f, 0)
         radius = lerp(1.5, 1.0, t)
 
+        cx = wx
+        cy = 0
+
         seg = t * 4
         if seg < 1:
-            tri_ox = radius
-            tri_oy = -radius + 2 * radius * seg
+            ox = radius
+            oy = -radius + 2 * radius * seg
         elif seg < 2:
-            tri_ox = radius - 2 * radius * (seg - 1)
-            tri_oy = radius
+            ox = radius - 2 * radius * (seg - 1)
+            oy = radius
         elif seg < 3:
-            tri_ox = -radius
-            tri_oy = radius - 2 * radius * (seg - 2)
+            ox = -radius
+            oy = radius - 2 * radius * (seg - 2)
         else:
-            tri_ox = -radius + 2 * radius * (seg - 3)
-            tri_oy = -radius
+            ox = -radius + 2 * radius * (seg - 3)
+            oy = -radius
 
-        kf_loc(iso_tri, wx + tri_ox, tri_oy, f)
-
-        # Seeker overshoots, doubles back
-        chase_y = tri_oy * 0.4 + 0.2 * math.sin(t * 4 * math.pi)
-        seeker_y_out[f] = chase_y
-        kf_loc(seeker, wx, chase_y, f)
+        # Both orbit opposite each other
+        kf_loc(iso_tri, cx + ox, cy + oy, f)
+        kf_loc(seeker, cx - ox, cy - oy, f)
+        seeker_y_out[f] = cy - oy
 
     # THE STRONGER TEASE: Wide base faces Seeker — 0.15 gap (1210–1260)
     # 50 frames! Almost matches!
@@ -156,15 +138,28 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - 1210) / 50.0
         wx = seeker_world_positions.get(f, 0)
 
-        # Triangle holds at close range, base facing Seeker
-        tri_x = wx + lerp(1.0, 0.5, ease_in_out_cubic(min(t * 2, 1.0)))
-        tri_y = 0
+        # Transition from final orbit position to face-to-face
+        if t < 0.2:
+            # Settle from orbit to aligned approach
+            lt = t / 0.2
+            gap = lerp(1.0, 0.5, ease_in_out_cubic(lt))
+            tri_x = wx + gap / 2 + 0.2
+            tri_y = 0
+            seeker_x = wx - gap / 2 + 0.2
+            seeker_y = 0
+        else:
+            # Hold close, base facing Seeker
+            lt = (t - 0.2) / 0.8
+            gap = lerp(0.5, 0.15, ease_in_out_cubic(min(lt * 1.5, 1.0)))
+            tri_x = wx + gap / 2 + 0.2
+            tri_y = 0
+            seeker_x = wx - gap / 2 + 0.2
+            seeker_y = 0
+
         kf_loc(iso_tri, tri_x, tri_y, f)
         kf_rot_z(iso_tri, 0, f)  # base faces Seeker
-
-        # Seeker holds still, pulse quickens
-        seeker_y_out[f] = 0
-        kf_loc(seeker, wx, 0, f)
+        seeker_y_out[f] = seeker_y
+        kf_loc(seeker, seeker_x, seeker_y, f)
 
     apply_pulse(seeker, 1210, 1260, period=30, amplitude=0.04)
 
@@ -192,12 +187,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
         seg = t * 2  # slower orbit
         radius = 1.2
-        if seg < 1:
-            tri_ox = radius * math.cos(seg * math.pi)
-            tri_oy = radius * math.sin(seg * math.pi)
-        else:
-            tri_ox = radius * math.cos(seg * math.pi)
-            tri_oy = radius * math.sin(seg * math.pi)
+        tri_ox = radius * math.cos(seg * math.pi)
+        tri_oy = radius * math.sin(seg * math.pi)
 
         kf_loc(iso_tri, wx + tri_ox, tri_oy, f)
         kf_rot_z(iso_tri, 0, f)
@@ -223,13 +214,13 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         tri_em = lerp(ISO_TRI_EMISSION, 0.0, ease_in_out_cubic(t))
         kf_emission_strength(iso_tri_mat, tri_em, f)
 
-        # Seeker drifts sadly
+        # Seeker drifts sadly — smooth transition from -1.0
         if t < 0.33:
             y = lerp(-1.0, -1.5, ease_in_out_cubic(t / 0.33))
         elif t < 0.67:
-            y = lerp(-1.5, -1.5, t)
+            y = -1.5
         else:
-            y = lerp(-1.5, -1.5, t)
+            y = -1.5
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 
@@ -244,9 +235,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - 1500) / 150.0
         wx = seeker_world_positions.get(f, 0)
 
-        # Deep sadness, sinking
+        # Deep sadness, sinking — smooth from -1.5
         if t < 0.27:
-            y = lerp(-1.5, -1.5, t)  # sigh
+            y = -1.5  # hold
         elif t < 0.53:
             y = lerp(-1.5, -2.0, ease_in_out_cubic((t - 0.27) / 0.26))
         elif t < 0.80:

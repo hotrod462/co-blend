@@ -39,22 +39,43 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
 
     # ── Beat 4.1: Huddle (Frames 2460–2670) ──────────────────
     # Flush contact, gentle sway, traveling together
+    # Transition smoothly from Act 3's final angle
     for f in range(2460, 2671):
         t = (f - 2460) / 210.0
         wx = seeker_world_positions.get(f, 0)
 
-        # Side by side, flush (gap=0)
-        # Gentle sway: Y ±0.3 in sync
-        if f >= 2500:
+        # Smoothly transition from orbit-based positioning to side-by-side
+        # In the first ~40 frames, blend from final_angle to horizontal arrangement
+        if f < 2500:
+            blend = (f - 2460) / 40.0  # 0 → 1 over 40 frames
+            blend = ease_in_out_cubic(blend)
+
+            # Orbit-based position from Act 3 end
+            cx = wx + 0.6
+            orbit_sx = cx + half_size * math.cos(final_angle)
+            orbit_sy = half_size * math.sin(final_angle)
+            orbit_ox = cx + half_size * math.cos(final_angle + math.pi)
+            orbit_oy = half_size * math.sin(final_angle + math.pi)
+
+            # Target side-by-side position
+            target_sx = wx + half_size
+            target_sy = 0
+            target_ox = wx - half_size
+            target_oy = 0
+
+            sx = lerp(orbit_sx, target_sx, blend)
+            sy = lerp(orbit_sy, target_sy, blend)
+            ox = lerp(orbit_ox, target_ox, blend)
+            oy = lerp(orbit_oy, target_oy, blend)
+        else:
+            # Side by side, flush (gap=0)
             sway_t = (f - 2500) / 170.0
             sway = 0.3 * math.sin(sway_t * 3 * 2 * math.pi)
-        else:
-            sway = 0
 
-        sx = wx + half_size
-        ox = wx - half_size
-        sy = sway
-        oy = sway
+            sx = wx + half_size
+            ox = wx - half_size
+            sy = sway
+            oy = sway
 
         kf_loc(seeker, sx, sy, f)
         kf_loc(the_one, ox, oy, f)
@@ -175,10 +196,8 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
     # Track camera during glow
     for f in range(3010, 3151):
         wx = seeker_world_positions.get(f, 0)
-        kf_loc(glow, wx, 0, f)
-        # Override Z
-        glow.location[2] = 0.3
-        glow.keyframe_insert(data_path="location", index=2, frame=f)
+        glow.location = (wx, 0, 0.3)
+        glow.keyframe_insert(data_path="location", frame=f)
 
     # Glow brightness ramp
     kf_emission_strength(glow_mat, 0.0, 3010)
@@ -201,9 +220,8 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
 
     for f in range(3130, 3151):
         wx = seeker_world_positions.get(f, 0)
-        kf_loc(fade, wx, 0, f)
-        fade.location[2] = 0.5
-        fade.keyframe_insert(data_path="location", index=2, frame=f)
+        fade.location = (wx, 0, 0.5)
+        fade.keyframe_insert(data_path="location", frame=f)
 
     kf_emission_strength(fade_mat, 0.0, 3130)
     kf_emission_strength(fade_mat, 3.0, 3150)

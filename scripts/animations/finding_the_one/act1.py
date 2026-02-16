@@ -2,8 +2,7 @@
 Finding the One — Act I: The Journey Begins (Frames 330–990, 11s–33s)
 
 The Seeker explores the scrolling world, encounters its first mismatch
-(a right-angle triangle), gets rejected, and recovers. A foreshadowing
-near-miss with The One occurs in the background.
+(a right-angle triangle), gets rejected, and recovers.
 """
 import math
 
@@ -113,20 +112,28 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 
-    # Tight chaotic orbit around Seeker (680–720)
+    # MUTUAL orbit: Both orbit each other around their midpoint (680–720)
     for f in range(680, 721):
         t = (f - 680) / 40.0
         wx = seeker_world_positions.get(f, 0)
-        # Triangle orbits chaotically
+
+        # Orbit center is between them
+        cx = wx + 0.5  # center between the two
+        cy = 0
+
         angle = t * 3 * math.pi  # fast spin
         radius = 1.0
-        tri_x = wx + radius * math.cos(angle)
-        tri_y = radius * math.sin(angle)
+
+        # Both orbit opposite each other
+        seeker_x = cx + radius * math.cos(angle + math.pi)
+        seeker_y = cy + radius * math.sin(angle + math.pi)
+        tri_x = cx + radius * math.cos(angle)
+        tri_y = cy + radius * math.sin(angle)
+
         kf_loc(right_tri, tri_x, tri_y, f)
         kf_rot_z(right_tri, angle * 1.5, f)
-        # Seeker watches
-        seeker_y_out[f] = 0
-        kf_loc(seeker, wx, 0, f)
+        seeker_y_out[f] = seeker_y
+        kf_loc(seeker, seeker_x, seeker_y, f)
 
     # THE TEASE: Flat leg faces Seeker — approaches to 0.2 gap (720–750)
     for f in range(720, 751):
@@ -134,27 +141,30 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         wx = seeker_world_positions.get(f, 0)
 
         if t < 0.33:
-            # Approach
+            # Approach — both move toward each other
             gap = lerp(1.0, 0.2, ease_in_out_cubic(t / 0.33))
-            tri_x = wx + gap + 0.35
+            tri_x = wx + gap / 2 + 0.35
             tri_y = 0
+            seeker_x = wx - gap / 2 + 0.35
+            seeker_y = 0
         elif t < 0.67:
             # Hold — THE TEASE (~10 frames)
             tri_x = wx + 0.55
             tri_y = 0
+            seeker_x = wx
+            seeker_y = 0
         else:
             # Hypotenuse rotates into contact — BONK
             bonk_t = (t - 0.67) / 0.33
             tri_x = wx + 0.55 + 0.3 * bonk_t
             tri_y = 0.5 * bonk_t  # bounces away
+            seeker_x = wx
+            seeker_y = 0
             kf_rot_z(right_tri, lerp(0, math.pi / 3, bonk_t), f)
 
         kf_loc(right_tri, tri_x, tri_y, f)
-
-        # Seeker leans right slightly
-        seeker_y_out[f] = 0
-        sx = wx + lerp(0, 0.2, ease_in_out_cubic(min(t * 3, 1.0)))
-        kf_loc(seeker, sx, 0, f)
+        seeker_y_out[f] = seeker_y
+        kf_loc(seeker, seeker_x, seeker_y, f)
 
     # Recoil: Seeker jumps back (750–780)
     for f in range(750, 781):
@@ -192,7 +202,7 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         kf_rot_z(right_tri, 2 + t * 0.5, f)
 
         # Seeker: sigh, emission dips
-        seeker_y_out[f] = lerp(1.5, 1.5, t)
+        seeker_y_out[f] = 1.5
         kf_loc(seeker, wx, 1.5, f)
 
     # Seeker sigh (850–870)
@@ -222,20 +232,7 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
 
     apply_pulse(seeker, 870, 990, period=45, amplitude=0.03)
 
-    # ── Foreshadowing Near-Miss (frames ~900–990) ─────────────
-    # The One drifts through TOP-RIGHT corner of frame, unseen
-    for f in range(900, 991):
-        t = (f - 900) / 90.0
-        wx = seeker_world_positions.get(f, 0)
-        # The One at Y≈3.5–4.0, screen-relative X from +8 to +2
-        one_screen_x = lerp(8, 2, t)
-        one_world_x = wx + one_screen_x
-        one_y = lerp(3.5, 4.0, t)
-        kf_loc(the_one, one_world_x, one_y, f)
-        kf_emission_strength(one_mat, 2.0, f)
-
-    # Hide The One before and after near-miss
-    for f in range(1, 900):
-        kf_loc(the_one, -60, 0, f)
-    for f in range(991, ACT1_END + 1):
+    # ── The One stays hidden for the entire act ───────────────
+    # No foreshadowing near-miss — removed for clarity
+    for f in range(1, ACT1_END + 1):
         kf_loc(the_one, -60, 0, f)
