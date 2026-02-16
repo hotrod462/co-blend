@@ -1,6 +1,6 @@
-# Finding the One — Detailed Animation Script
+# Finding the One — Detailed Animation Script (v4)
 
-> A 60-second black-and-white Heider-Simmel-inspired animation about a small circle searching for its perfect match.
+> A 105-second black-and-white Heider-Simmel-inspired animation about a small square journeying through a world of triangles, searching for its perfect match.
 
 ---
 
@@ -8,323 +8,516 @@
 
 | Parameter           | Value                          |
 |---------------------|--------------------------------|
-| **Duration**        | 60 seconds                     |
+| **Duration**        | 105 seconds (1:45)             |
 | **FPS**             | 30                             |
-| **Total Frames**    | 1800                           |
+| **Total Frames**    | 3150                           |
 | **Resolution**      | 1920 × 1080                    |
 | **Color Palette**   | Black, white, and grays only   |
 | **Render Engine**   | EEVEE (flat/unlit shading)     |
-| **Camera**          | Top-down orthographic          |
+| **Camera**          | Top-down orthographic, tracking protagonist |
 
 ---
 
-## Stage Design
+## Stage Design — Scrolling World
 
-The scene is viewed from directly above (bird's-eye / top-down orthographic camera). The "room" is a simple rectangular space defined by faint gray boundary lines on a black background.
+The animation uses a **fixed-frame scrolling** approach. The Seeker stays roughly centered in frame while the world scrolls past from right to left. The wide 1920×1080 format becomes a road stretching into the future.
 
 ```
-┌─────────────────────────────────────────────────┐
-│                                                 │
-│                                                 │
-│                                                 │
-│                  (room interior)                │
-│                                                 │
-│                                                 │
-│                                                 │
-│          ┌──┐                                   │
-└──────────┘  └───────────────────────────────────┘
-           door
+Frame view (camera fixed on Seeker):
+
+     ← world scrolls this way ←
+
+  △        △                        △
+       △        ■ (Seeker)     △
+  △                       △            △
+           △                    △
+
+  (past)     (protagonist)      (future)
+  shapes     stays centered     new shapes
+  exit       in frame           appear
+  left                          from right
 ```
 
-### Room Specs
-- **Room bounds**: roughly -8 to +8 on X, -4.5 to +4.5 on Y
-- **Wall**: faint gray lines (material: emission gray ~0.25), thickness ~0.05
-- **Door opening**: bottom-left wall, ~2 units wide gap
-- **Floor**: pure black (background)
+### World Specs
+- **World space**: The Seeker travels from X≈0 to X≈100+ over 105 seconds
+- **Visible frame**: ~20 units wide × ~11 units tall (orthographic scale ~20)
+- **No walls, no room, no door** — open black void
+- **Floor**: Pure black (background)
+
+### Camera Behavior
+- **Type**: Orthographic, top-down
+- **Tracking**: Camera X = Seeker X. Camera Y = 0 (fixed).
+- **Orthographic scale**: Base ~20, with subtle emotional shifts (18–22)
+- **Result**: Seeker centered horizontally, drifts vertically within frame.
 
 ### Characters
 
-| Character         | Shape     | Size (radius/half-width) | Fill Color  | Notes |
-|-------------------|-----------|--------------------------|-------------|-------|
-| **Seeker**        | Circle    | 0.35                     | White (1.0) | The protagonist. Soft glow. |
-| **Square**        | Square    | 0.6 side                 | Gray (0.5)  | Jittery, erratic energy. |
-| **Rectangle**     | Rectangle | 0.8 × 0.4               | Gray (0.4)  | Stiff, mechanical movement. |
-| **The One**       | Circle    | 0.35                     | White (1.0) | Identical to Seeker. Soft glow. |
+| Character                | Shape              | Size                  | Fill Color     | Emission | Notes |
+|--------------------------|--------------------|-----------------------|----------------|----------|-------|
+| **Parent Triangle A**    | Right-angle tri    | ~1.0 leg              | White (0.9)    | 2.0      | Intro only. Large, eye-catching. |
+| **Parent Triangle B**    | Right-angle tri    | ~1.0 leg              | White (0.9)    | 2.0      | Intro only. Mirror of Parent A. |
+| **Seeker**               | Square             | 0.6 side              | White (1.0)    | 2.0      | Protagonist. Bright. Centered in frame. |
+| **Right-Angle Triangle** | Right-angle tri    | ~0.7 leg              | Gray (0.45)    | 0.8      | Mismatch 1. Erratic. Flat side teases. |
+| **Isosceles Triangle**   | Isosceles tri      | ~0.7 base, ~0.9 tall  | Gray (0.4)     | 0.8      | Mismatch 2. Rigid. Wide base teases. |
+| **The One**              | Square             | 0.6 side              | White (1.0)    | 2.0      | Perfect match. Identical to Seeker. |
+| **Background Triangles** | Mixed              | 0.3–0.5               | Dark gray (0.2–0.3) | 0.4 | 6–8 ambient. Fade over time. |
 
-All characters are flat 2D shapes (thin 3D meshes viewed from above), with soft emission materials to give a subtle glow against the black background.
-
----
-
-## Act I — Searching (Frames 1–450, 0s–15s)
-
-### Beat 1.1: Entrance (Frames 1–90, 0s–3s)
-
-**Action**: The Seeker circle enters hesitantly through the door from offscreen-left.
-
-| Frame Range | Seeker Position (X, Y) | Movement Quality | Notes |
-|-------------|------------------------|------------------|-------|
-| 1–30        | (-10, -3) → (-6, -3)  | Slow drift rightward | Entering through door opening |
-| 30–45       | (-6, -3) → (-5, -2)   | Pause, slight upward drift | Looking around — "hesitation" |
-| 45–60       | (-5, -2)               | Hold position, gentle pulse (scale 1.0 → 1.05 → 1.0) | Breathing / awareness |
-| 60–90       | (-5, -2) → (-1, 0)    | Ease-in-out drift to center | Moving into the room |
-
-**Pulse animation**: Throughout the entire animation, the Seeker has a subtle continuous "heartbeat" pulse — scaling between 1.0 and 1.03 on a ~1.5 second cycle (45 frames). This is gentle enough to be subconscious.
-
-### Beat 1.2: Wandering (Frames 90–180, 3s–6s)
-
-**Action**: The Seeker slowly wanders the center of the room, looking "lost."
-
-| Frame Range | Movement | Notes |
-|-------------|----------|-------|
-| 90–120      | Drift from (-1, 0) → (1, 1) | Slow, meandering path |
-| 120–150     | Drift from (1, 1) → (0.5, -0.5) | Change direction, still aimless |
-| 150–180     | Drift from (0.5, -0.5) → (0, 0) | Settle near center |
-
-**Path quality**: Use perlin-noise-like wandering — not a straight line but a wobbly, uncertain path. Speed should be slow (~0.03 units/frame).
-
-### Beat 1.3: Square Encounter (Frames 180–360, 6s–12s)
-
-**Action**: The Square bounces in from the right side, interacts clumsily with the Seeker.
-
-| Frame Range | Square Action | Seeker Reaction | Notes |
-|-------------|---------------|-----------------|-------|
-| 180–210     | Square enters from (10, 2), bouncing erratically toward center | Seeker holds at (0, 0) | Square moves in sharp zigzags — 2–3 direction changes, fast |
-| 210–240     | Square reaches (1.5, 0.5), circles Seeker abruptly at tight radius (~1.0) | Seeker stays still, slight recoil (shift -0.3 away from Square) | Square orbits too fast — 1 full circle in 30 frames (180°/15fr) |
-| 240–270     | Square nudges into Seeker (approaches to 0.3 gap, bounces off) | Seeker recoils: quick jump to (-1.5, -0.5) | The "nudge" — Square moves to (0.3, 0), Seeker flinches away |
-| 270–310     | Square follows erratically, overshoots past Seeker | Seeker backs away further to (-2.5, -1) | Mismatch energy — Square is too aggressive |
-| 310–340     | Square pauses confused at (-0.5, 0), then exits right: (-0.5, 0) → (10, 1) | Seeker watches from (-2.5, -1) | Square gives up, leaves |
-| 340–360     | (Square offscreen) | Seeker "sighs": scale 1.0 → 0.92 → 1.0 over 20 frames | Deflation = sadness |
-
-**Square movement style**:
-- Sharp direction changes (not smooth easing — use linear or ease-out-bounce)
-- Speed: 0.15–0.25 units/frame (much faster than Seeker)
-- Rotation: Square should rotate jerkily as it moves (±15° random wobble per 5 frames)
-
-**Mismatch indicators**:
-- Speed differential (Square 4× faster than Seeker)
-- Distance mismatch (Square gets too close too fast)
-- Rhythm mismatch (Square's pulse, if any, is 2× the frequency of Seeker's)
-
-### Beat 1.4: Recovery (Frames 360–450, 12s–15s)
-
-**Action**: Seeker sighs and resumes wandering.
-
-| Frame Range | Seeker Action | Notes |
-|-------------|---------------|-------|
-| 360–390     | Stay at (-2.5, -1), slow pulse continues | Processing the encounter |
-| 390–420     | Drift back toward center: (-2.5, -1) → (-1, 0.5) | Reluctant re-engagement |
-| 420–450     | Gentle wander: (-1, 0.5) → (0.5, 0) | Back to searching |
+### Visual Hierarchy
+- **Seeker & The One**: Emission 2.0, white. Pop against everything.
+- **Encounter triangles**: Emission 0.8, mid-gray. Visible but secondary.
+- **Background triangles**: Emission 0.4, dark gray. Scenery.
+- **Seeker emission fluctuates** with emotional state (see curve below).
 
 ---
 
-## Act II — False Hopes (Frames 450–900, 15s–30s)
+## Visual Systems
 
-### Beat 2.1: Rectangle Entrance (Frames 450–540, 15s–18s)
+### Corner Trail Lines
+The **two left corners** of the Seeker square leave trailing glow lines. Length scales with scroll speed:
 
-**Action**: The Rectangle glides in smoothly but stiffly from the top of the room.
+| Scroll Speed | Trail Length | Brightness | Feel |
+|--------------|-------------|------------|------|
+| Near-stop (0.005 u/f) | Dots, ~0.1u | 0.2 | Barely moving |
+| Slow (0.015 u/f) | ~0.5u | 0.4 | Contemplative |
+| Normal (0.03 u/f) | ~1.0u | 0.6 | Steady journey |
+| Fast (0.06 u/f) | ~2.5u | 1.0 | Purposeful |
+| Racing (0.10 u/f) | ~4.0u streaks | 1.5 | Exhilarating |
 
-| Frame Range | Rectangle Position | Movement Quality | Notes |
-|-------------|-------------------|------------------|-------|
-| 450–480     | (3, 6) → (3, 3)  | Perfectly straight downward glide, constant speed | Mechanical precision |
-| 480–510     | (3, 3) → (2, 1.5) | 90° turn, then straight horizontal+diagonal | Rigid, no curves |
-| 510–540     | (2, 1.5) → (1.2, 0.5) | Approaches Seeker's area, slows | Never decelerates smoothly — steps down in speed |
+When paired (Act IV), **four** trailing corners (both squares' left edges = rectangle left side).
 
-**Rectangle movement style**:
-- Always in straight lines with sharp corner turns
-- No rotation (or perfectly aligned rotation — turns exactly 90° when changing direction)
-- Speed: constant 0.1 units/frame, steps down to 0.05 when "approaching"
-- No pulse animation (it doesn't "breathe")
+### Seeker Emission Curve (Emotional Barometer)
 
-### Beat 2.2: Stiff Orbit (Frames 540–690, 18s–23s)
+```
+Emission: 2.0 ── 2.0 ─╲ 1.7 ╱ 1.9 ─╲ 1.4 ── 1.2 ╲ 1.0 ╱ 2.0 ╱ 3.0 → 5.0
+                       ↑          ↑              ↑       ↑         ↑
+                  1st reject   recover      2nd reject  lowest   The One
+```
 
-**Action**: Rectangle attempts to orbit the Seeker, but rigidly. Seeker tries to match.
+### Background Triangle Density Curve
 
-| Frame Range | Rectangle Action | Seeker Reaction | Notes |
-|-------------|------------------|-----------------|-------|
-| 540–600     | Begins orbiting Seeker at radius 1.5, but in a square-shaped orbit path (straight segments with 90° corners) | Seeker tries to rotate to "face" Rectangle, speeding up to track it | Rectangle orbit: 4 straight segments, 90° turn each |
-| 600–630     | Orbit shifts closer to radius 1.0, still square-shaped path | Seeker speeds up, overshoots, doubles back | Out-of-sync — Seeker arrives at where Rectangle WAS |
-| 630–660     | Rectangle and Seeker collide softly (gap shrinks to 0.1, bump) | Both shift apart — Rectangle barely reacts, Seeker wobbles | The "clumsy bump" |
-| 660–690     | Rectangle resumes rigid orbit, unchanged | Seeker slows down, drifts away from orbit path to (-1, -1) | Seeker gives up trying to match |
+```
+Density: 0 ╱ 7-8 ╲ 8-10  ╲ 6-7 ╲ 4-5 ╲ 2-3 ╲ 0-1 ╱ 1-2 ╲ 0
+        intro  exploring  crowded normal thinning bare  pair  gone
+                          ↑                  ↑        ↑
+                     after 1st          after 2nd   "gave up"
+```
 
-**Mismatch indicators**:
-- Rectangle's path is angular; Seeker's natural movement is curved
-- Rectangle maintains constant speed regardless of Seeker's position
-- No synchronization of "breathing" — Rectangle has no pulse
-- The bump causes no change in Rectangle's behavior (it doesn't care)
+Background triangles don't disappear — they **fade out** (emission 0.4 → 0 over 60–90 frames each). Stars going out, one by one.
 
-### Beat 2.3: Sad Separation (Frames 690–810, 23s–27s)
+### Post-Rejection Y-Drift Range
 
-**Action**: Seeker drifts away sadly. Rectangle lingers but doesn't pursue.
+| Phase | Y Range | Quality |
+|-------|---------|---------|
+| Pre-encounters | ±2.0 | Wide, curious exploration |
+| After 1st rejection | ±1.5 | Slightly guarded |
+| After 2nd rejection | ±0.8 | Withdrawing |
+| "Almost gave up" | ±0.2 | Flatlined — no curiosity |
+| The One appears | ±0.5 → ±1.0 | Reopening |
+| Paired | ±0.3 | Gentle, chosen sway (warm, not defeated) |
 
-| Frame Range | Rectangle Action | Seeker Action | Notes |
-|-------------|------------------|---------------|-------|
-| 690–720     | Continues orbiting at reduced speed, doesn't follow Seeker | Seeker drifts to (-2, -1.5), pulse slows slightly | Emotional distance |
-| 720–750     | Rectangle stops orbiting, holds position at (1.5, 0) | Seeker at (-2.5, -2), minimal movement | Stillness = loneliness |
-| 750–780     | Rectangle begins exit: (1.5, 0) → (3, 2) (straight line) | Seeker watches (no movement) | Rectangle leaves without looking back |
-| 780–810     | Rectangle exits: (3, 2) → (3, 6) → offscreen | Seeker alone | No pursuit = it wasn't meant to be |
+### Scroll Speed as Emotion
 
-### Beat 2.4: Alone Again (Frames 810–900, 27s–30s)
+| Speed | Meaning |
+|-------|---------|
+| 0.03 u/f (normal) | Calm journey |
+| 0.01–0.02 u/f | Encounter — world slows |
+| 0.005 u/f | Critical moment — time stops |
+| 0.04–0.10 u/f | Paired momentum — world flies past |
 
-| Frame Range | Seeker Action | Notes |
-|-------------|---------------|-------|
-| 810–840     | Hold at (-2.5, -2), slow pulse, slight "sigh" deflation (scale 0.94) | Deeper sadness than after Square |
-| 840–870     | Very slow drift toward door area: (-2.5, -2) → (-3, -2.5) | Considering leaving? |
-| 870–900     | Stops near (-3, -2), turns slightly back toward center | One more look... |
+### Orthographic Scale Shifts
 
----
-
-## Act III — Discovery (Frames 900–1350, 30s–45s)
-
-### Beat 3.1: The One Enters (Frames 900–990, 30s–33s)
-
-**Action**: A second small circle enters softly through the door, mirroring the Seeker's original entrance path.
-
-| Frame Range | The One Position | Seeker Position | Notes |
-|-------------|------------------|-----------------|-------|
-| 900–930     | (-10, -3) → (-6, -3) | (-3, -2) holds still | SAME entrance path as Seeker used in Beat 1.1 |
-| 930–950     | (-6, -3) → (-5, -2) | (-3, -2) holds, pulse quickens slightly | Same hesitation pattern! |
-| 950–970     | (-5, -2) → (-4, -1.5) | (-3, -2) → (-3.2, -1.8) slight drift toward The One | Noticing each other |
-| 970–990     | (-4, -1.5) — holds | (-3.2, -1.8) — holds | THE PAUSE. Both stop. "Seeing" each other. |
-
-**Critical detail**: The One's entrance MIRRORS the Seeker's Act I entrance (same path, same hesitation timing). Audience should subconsciously recognize the parallel.
-
-**The One's pulse**: Same frequency and amplitude as the Seeker's — 1.0 → 1.03 on a 45-frame cycle. They should already be roughly in sync from the start.
-
-### Beat 3.2: Mutual Recognition (Frames 990–1050, 33s–35s)
-
-**Action**: The moment of recognition. Both pause, "face" each other, then begin tentative approach.
-
-| Frame Range | The One | Seeker | Notes |
-|-------------|---------|--------|-------|
-| 990–1010    | Hold at (-4, -1.5) | Hold at (-3.2, -1.8) | Frozen pause — no movement at all for 20 frames |
-| 1010–1020   | Very slight drift: (-4, -1.5) → (-3.8, -1.6) | Very slight drift: (-3.2, -1.8) → (-3.4, -1.7) | Tentative approach — 0.02 units/frame |
-| 1020–1035   | (-3.8, -1.6) → (-3.5, -1.5) | (-3.4, -1.7) → (-3.5, -1.5) | Coming together — meeting at midpoint |
-| 1035–1050   | Hold at (-3.5, -1.5), gap = 0.8 units | Hold at (-3.5, -1.5), gap = 0.8  | Close but not touching. Gentle pulse in sync. |
-
-**Pulse synchronization**: By frame 1020, both circles should be pulsing in PERFECT sync — same phase, same amplitude. This is the first major visual marker of compatibility.
-
-### Beat 3.3: First Orbit (Frames 1050–1200, 35s–40s)
-
-**Action**: Slow, synchronized orbiting — starts gentle, builds to joyful spins.
-
-| Frame Range | Movement | Speed | Orbit Radius | Notes |
-|-------------|----------|-------|--------------|-------|
-| 1050–1110   | Begin slow circular orbit around their shared center point | 0.5 RPM (1 revolution per 120 frames) | 0.8 units | Gentle, testing |
-| 1110–1140   | Speed increases | 1.0 RPM (1 rev per 60 frames) | 0.7 units | Growing comfort, tightening orbit |
-| 1140–1170   | Speed increases more | 2.0 RPM (1 rev per 30 frames) | 0.5 units | Joyful — spinning faster |
-| 1170–1200   | Rapid, joyful spinning | 3.0 RPM (1 rev per 20 frames) | 0.4 units | Exuberant! |
-
-**Orbit quality**:
-- SMOOTH circular path (contrast with Square's zigzags and Rectangle's angular orbit)
-- Both circles always equidistant from center — perfect symmetry
-- Both pulsing in sync throughout
-- Orbit is centered, gradually drifting toward room center as they spin
-
-### Beat 3.4: Nose-to-Nose (Frames 1200–1350, 40s–45s)
-
-**Action**: They slow down and come to a stop, perfectly aligned, "nose to nose."
-
-| Frame Range | Movement | Notes |
-|-------------|----------|-------|
-| 1200–1230   | Decelerate from 3.0 RPM to 1.0 RPM, radius shrinks 0.4 → 0.3 | Winding down from joy |
-| 1230–1260   | Decelerate to 0.3 RPM, radius 0.3 → 0.15 | Almost still |
-| 1260–1290   | Final quarter-turn to perfect horizontal alignment | Side by side |
-| 1290–1320   | Hold position, gap = 0.1 units | "Nose to nose" — closest they've been |
-| 1320–1350   | Synchronized pulse intensifies: 1.0 → 1.06 → 1.0 | Shared heartbeat growing stronger |
+| Moment | Scale | Effect |
+|--------|-------|--------|
+| Normal | 20 | Standard view |
+| During encounters | 18 | Slightly zoomed in — focused |
+| "Almost gave up" | 22 | Zoomed out — Seeker feels small |
+| The Click | 16 | Tight zoom — intimate |
+| Final acceleration | 24 | Wide — world expanding |
 
 ---
 
-## Act IV — Union (Frames 1350–1800, 45s–60s)
+## ⚠️ Continuity Rules
 
-### Beat 4.1: Huddle (Frames 1350–1500, 45s–50s)
+> **CRITICAL**: Every shape's position must be continuous. No teleporting.
+> All world-space positions must account for camera scroll.
 
-**Action**: The pair huddles closely, pulsing in unison, swaying gently.
+---
 
-| Frame Range | Movement | Notes |
-|-------------|----------|-------|
-| 1350–1380   | Gap closes from 0.1 to 0.05 | Almost touching |
-| 1380–1440   | Gentle shared sway: both drift left 0.3, right 0.3, left 0.3 units in sync | Rocking together |
-| 1440–1500   | Sway continues, pair slowly drifts toward door: center → (-2, -1) | Beginning to leave together |
+## Prologue — The Birth (Frames 1–330, 0s–11s)
 
-**Pulse**: Now a strong shared heartbeat — 1.0 → 1.08 → 1.0 on a 40-frame cycle. Both EXACTLY in sync.
+### Purpose
+**The hook.** Two large, bright right-angle triangles are spinning from frame 1 — immediate motion to stop social media scrolling. They spiral together, their hypotenuses align to form a square, and from that union the Seeker is born.
 
-**Glow**: Both circles subtly brighten — emission strength increases from 1.0 to 1.5 over this section.
+### Geometric Poetry
+- **Opening**: △ + △ = ■ (birth)
+- **Ending**: ■ + ■ = ▬ (union)
 
-### Beat 4.2: Exit Together (Frames 1500–1650, 50s–55s)
+### Beat P.1: Immediate Motion (Frames 1–30, 0s–1s)
 
-**Action**: The pair glides toward the door and exits together, side by side.
+Two large right-angle triangles are ALREADY orbiting when the animation begins. No fade-in, no title card. Motion from frame 1.
 
-| Frame Range | Pair Position (center) | Movement | Notes |
-|-------------|----------------------|----------|-------|
-| 1500–1530   | (-2, -1) → (-3.5, -1.5) | Smooth drift toward door | Still pulsing together |
-| 1530–1560   | (-3.5, -1.5) → (-5, -2.5) | Approaching door opening | Side by side, gap = 0.05 |
-| 1560–1590   | (-5, -2.5) → (-7, -3) | Through the door | Exiting! |
-| 1590–1650   | (-7, -3) → (-12, -3) | Offscreen left | Gone together |
-
-**Trail effect**: As they exit (frames 1530+), leave a faint trail behind them — ghosted positions every 10 frames that fade out over 30 frames. The trail of two parallel lines should subtly curve to suggest a **heart shape** as they approach and pass through the door. This is achieved by having the pair wobble slightly left then right then converge as they exit, so the trail forms the two bumps of a heart.
-
-### Beat 4.3: Lingering Glow (Frames 1650–1800, 55s–60s)
-
-**Action**: The room is empty. A faint warm glow remains where they were.
-
-| Frame Range | Visual | Notes |
+| Frame Range | Action | Notes |
 |-------------|--------|-------|
-| 1650–1700   | Empty room. Faint glow at center where they orbited. | Glow = small emission plane, low opacity |
-| 1700–1750   | Glow fades. Room slightly "warmer" than beginning (walls go from gray 0.25 to gray 0.3). | Subtle — the room changed |
-| 1750–1800   | Fade to full black. | End. |
+| 1–30 | Two right-angle triangles orbiting each other at radius ~2.0, center of screen | Large (~1.0 leg), bright white, emission 2.0+. Against pure black, pops on any feed. |
+
+Speed: ~1 revolution per 60 frames (moderate). Large, visible, hypnotic.
+
+### Beat P.2: Spiral Inward (Frames 30–90, 1s–3s)
+
+| Frame Range | Action | Notes |
+|-------------|--------|-------|
+| 30–60 | Orbit tightens: radius 2.0 → 1.0. Speed increases. | Gravitational pull feeling |
+| 60–90 | Radius 1.0 → 0.5. Faster spin. | "What happens when they meet?" |
+
+### Beat P.3: The Alignment (Frames 90–130, 3s–4.3s)
+
+| Frame Range | Action | Notes |
+|-------------|--------|-------|
+| 90–110 | Spin slows. Triangles rotate so hypotenuses face each other. | Deliberate alignment |
+| 110–125 | Gap shrinks: 0.5 → 0.2 → 0.05. Slide together. | Building tension |
+| 125–130 | Hypotenuses meet flush. **CLICK.** They form a perfect rectangle. | Satisfying snap. The audience learns: shapes can combine. |
+
+### Beat P.4: The Birth (Frames 130–200, 4.3s–6.7s)
+
+| Frame Range | Action | Notes |
+|-------------|--------|-------|
+| 130–160 | Combined shape pulses: emission 2.0 → 4.0 → 2.0. Whole screen breathes. | Life force |
+| 160–185 | A smaller square separates from the center. Parent dims (2.0 → 0.8), child brightens (0 → 2.0). | Cell-dividing visual. The Seeker is BORN. |
+| 185–200 | Seeker fully separated, ~60% parent size. Parent holds. | Two distinct shapes now. |
+
+### Beat P.5: Departure (Frames 200–330, 6.7s–11s)
+
+| Frame Range | Action | Notes |
+|-------------|--------|-------|
+| 200–240 | Parent rectangle drifts left and off-screen (into the past). | Establishes scroll direction. |
+| 240–270 | Seeker alone in frame. Holds still. Its pulse begins — the heartbeat. | The journey hasn't started yet. |
+| 270–300 | First background triangles appear dimly from the right. | The world exists. |
+| 300–330 | World scroll begins (0 → 0.03 u/f). Seeker centered. Journey starts. | Transition into Act I. |
+
+---
+
+## Act I — The Journey Begins (Frames 330–990, 11s–33s)
+
+### Beat 1.1: First Steps (Frames 330–450, 11s–15s)
+
+| Frame Range | Seeker (screen-relative) | Scroll | Notes |
+|-------------|--------------------------|--------|-------|
+| 330–370 | Y: 0 → 0.5, gentle upward drift | 0.03 u/f (settling) | Looking around. Background triangles flowing past. |
+| 370–420 | Y: 0.5 → -0.3 → 0.2 (wander) | 0.03 u/f | Establishing the rhythm. Corner trails visible — medium length (~1.0u). |
+| 420–450 | Y: 0.2 → 0 (centers) | 0.03 u/f | Settled into the journey. |
+
+Pulse: 45-frame cycle, amplitude 0.03. Steady heartbeat.
+
+### Beat 1.2: Wandering the Landscape (Frames 450–630, 15s–21s)
+
+Wide Y-drift (±2.0) showing curiosity and exploration. Background triangles at full density (7–8 visible).
+
+| Frame Range | Y Movement | Notes |
+|-------------|------------|-------|
+| 450–500 | Y: 0 → 1.5 | Drifting upward, exploring |
+| 500–540 | Y: 1.5 → -0.5 | Direction change, aimless |
+| 540–570 | Y: -0.5 → -1.5 | Passes near a background triangle — no interaction |
+| 570–600 | Y: -1.5 → 0.5 | Wandering through the landscape |
+| 600–630 | Y: 0.5 → 0 | Settling toward center |
+
+**Background Pairing #1** (frames ~480–570): Two small dim equilateral triangles (~Y: 2.5, mid-ground) approach each other, do a brief awkward orbit (~80 frames), bonk, drift apart. The Seeker passes by. Audience sees: "everyone is trying to connect. It's hard."
+
+### Beat 1.3: Right-Angle Triangle Encounter (Frames 630–870, 21s–29s)
+
+A right-angle triangle enters from the right — brighter and larger than background shapes. Erratic, fast. Its flat leg side briefly teases compatibility.
+
+**Scroll slows during encounters** (0.03 → 0.01 u/f). Corner trails shorten.
+
+| Frame Range | Triangle (screen-rel) | Seeker Y | Scroll | Notes |
+|-------------|----------------------|----------|--------|-------|
+| 630–680 | Enters from (+12, 1.5), zigzags toward center | Y≈0, interest (pulse quickens) | → 0.02 | 3–4 direction changes. Clearly brighter than background. |
+| 680–720 | Reaches (~2, 0.5), tight chaotic orbit around Seeker | Y≈0, watching | 0.01 | Too fast, too tight |
+| 720–750 | Flat leg faces Seeker's side — approaches to 0.2 gap | Seeker leans right (+0.2) | 0.01 | **THE TEASE** — hold ~10 frames. Ortho scale → 18. |
+| 750–780 | Hypotenuse rotates into contact — BONK. Bounces, spins. | Recoils: Y → 1.0 | 0.01 | Geometry fails. |
+| 780–820 | Follows erratically, overshoots | Y → 1.5 | 0.015 | Too aggressive |
+| 820–850 | Stops keeping up. Falls behind in frame (scroll carries it left). | Y≈1.5, watching | → 0.02 | The Seeker moves on; triangle left behind in the past. |
+| 850–870 | Off-screen left | Sigh: scale 1.0 → 0.92 → 1.0 | → 0.03 | Deflation. Ortho scale → 20. |
+
+**Seeker emission**: 2.0 → dips to 1.7 after encounter.
+**Y-drift range contracts**: ±2.0 → ±1.5
+
+### Beat 1.4: Recovery (Frames 870–990, 29s–33s)
+
+| Frame Range | Seeker Y | Scroll | Notes |
+|-------------|----------|--------|-------|
+| 870–910 | Y: 1.5 → 1.2 | 0.03 | Processing. Emission recovering: 1.7 → 1.9 |
+| 910–950 | Y: 1.2 → 0.5 | 0.03 | Drifting back toward center |
+| 950–990 | Y: 0.5 → 0 | 0.03 | Re-centered. Searching again. |
+
+**🔮 Foreshadowing Near-Miss** (frames ~900–990): A bright square (emission 2.0, same as Seeker) drifts through the TOP-RIGHT corner of frame (Y ≈ 3.5–4.0), ~3–4 seconds visible. The Seeker is at Y ≈ 1.0, drifting downward — processing rejection, not looking up. They pass each other. On rewatch: "The One was RIGHT THERE."
+
+---
+
+## Act II — False Hopes (Frames 990–1650, 33s–55s)
+
+### Beat 2.1: Isosceles Triangle Entrance (Frames 990–1110, 33s–37s)
+
+Isosceles enters from upper-right. Rigid, mechanical. Wide base is almost the width of the Seeker's side — audience curiosity: "maybe THIS one fits?"
+
+| Frame Range | Triangle (screen-rel) | Scroll | Notes |
+|-------------|----------------------|--------|-------|
+| 990–1030 | Enters (+12, 3), straight downward glide to (+6, 1.5) | → 0.02 | Mechanical precision. Brighter than background. |
+| 1030–1070 | (+6, 1.5) → (+3, 0.5), 90° turn | 0.015 | Rigid. No curves. |
+| 1070–1110 | (+3, 0.5) → (+1.5, 0.2), speed steps down | 0.01 | Approaches. Ortho scale → 18. |
+
+### Beat 2.2: Stiff Interaction (Frames 1110–1350, 37s–45s)
+
+**Background Pairing #2** (frames ~1140–1230): In the far background (Y ≈ -3), scalene + equilateral triangles circle briefly and fail. Doubles the sense of "connection is hard."
+
+| Frame Range | Triangle Action | Seeker Y | Notes |
+|-------------|-----------------|----------|-------|
+| 1110–1170 | Angular orbit at radius 1.5, straight segments + 90° turns | Tries to track, speeding up | Angular — not smooth |
+| 1170–1210 | Orbit tightens to 1.0, still angular | Overshoots, doubles back | Out-of-sync |
+| 1210–1260 | Wide base faces Seeker's side — 0.15 gap | Y holds still, pulse quickens | **THE STRONGER TEASE** — 50 frames! Almost matches! |
+| 1260–1290 | Rotation reveals taper — flush breaks. Soft bump. | Wobbles, recoils | Close but wrong. Taper ruins it. |
+| 1290–1320 | Resumes rigid orbit, unchanged | Drifts: Y → -1 | Doesn't care. |
+| 1320–1350 | Continues mechanical orbit | Y ≈ -1, deflating | Giving up. |
+
+**Scroll**: Nearly stopped (0.005 u/f) during interaction. Corner trails: dots.
+
+### Beat 2.3: Sad Separation (Frames 1350–1500, 45s–50s)
+
+The Seeker resumes forward movement. Triangle doesn't pursue — left behind.
+
+| Frame Range | Triangle | Seeker | Scroll | Notes |
+|-------------|----------|--------|--------|-------|
+| 1350–1390 | Falls behind in frame (scroll carries it left) | Y ≈ -1, pulse slows | → 0.015 | Moving on. |
+| 1390–1430 | Drifts to left edge | Y: -1 → -1.5 | 0.02 | Being left in the past. |
+| 1430–1470 | Exits left | Y ≈ -1.5 | 0.025 | Gone. |
+| 1470–1500 | Off-screen | Y ≈ -1.5, lonely | 0.025 | Just background shapes again. |
+
+**Seeker emission**: drops to 1.4.
+**Y-drift range contracts**: ±1.5 → ±0.8
+**Background triangles**: starting to thin — 4–5 visible, some fading out.
+
+### Beat 2.4: Alone Again (Frames 1500–1650, 50s–55s)
+
+| Frame Range | Seeker Y | Scroll | Notes |
+|-------------|----------|--------|-------|
+| 1500–1540 | Y: -1.5, sigh (scale 0.92) | 0.025 | Deeper sadness. Emission → 1.2. |
+| 1540–1580 | Y: -1.5 → -2.0 (sinking) | 0.02 | Losing momentum. BG triangles: 2–3, dimming. |
+| 1580–1620 | Y: -2.0 → -1.5 (slight recovery) | 0.02 | Still going, barely. |
+| 1620–1650 | Y: -1.5 → -0.5 | 0.02 | One more try... scroll still slow. |
+
+Background triangles sparser — fewer spawning. World feels emptier.
+
+---
+
+## The Valley — "Almost Gave Up" (Frames 1650–1800, 55s–60s)
+
+**The emotional hinge.** 5 seconds of genuine darkness before the turn.
+
+### Frames 1650–1690 (first 1.3s)
+- Y-drift flatlined: ±0.2
+- Scroll: 0.012 u/f, decelerating
+- Emission: 1.2, still dimming
+- Background: 1 triangle visible, fading
+- Pulse: period 60, amplitude 0.02 (weak)
+- Corner trails: barely visible dots
+
+### Frames 1690–1740 (middle)
+- Scroll: 0.008 u/f — crawling
+- Emission: **1.0** — almost as dim as an encounter triangle
+- Background: last triangle faded. **Pure black void.**
+- Pulse: period 70, amplitude 0.015 — heartbeat dying?
+- Corner trails: gone
+- **Ortho scale: 22** — Seeker feels tiny in the void
+- The screen is almost pure black with one dim square in the center.
+
+### Frame 1740 — THE TURN
+- Extreme right edge: a tiny, faint glow. Almost imperceptible.
+- Just a few pixels of light. Could be nothing.
+
+### Frames 1740–1770
+- Glow gets slightly brighter, closer. Definitely there.
+- Seeker's pulse **skips** — tiny extra beat (amplitude briefly 0.04). Something registered.
+- Emission: 1.0 → 1.1. Barely.
+- Scroll: 0.008 → 0.010.
+
+### Frames 1770–1800
+- The glow is clearly a shape. A **SQUARE** shape. Bright. White. Emission 2.0.
+- Seeker emission: 1.1 → 1.5 → 1.8
+- Scroll: 0.010 → 0.015 → 0.020
+- Pulse quickens: period 70 → 50 → 45
+- Corner trails reappear — short but growing
+- **Transition into Act III**
+
+---
+
+## Act III — Discovery (Frames 1800–2460, 60s–82s)
+
+### Beat 3.1: The One Appears Ahead (Frames 1800–1950, 60s–65s)
+
+A second square, directly ahead on the Seeker's path. Bright white. Not a triangle. The thematic payoff of the scrolling format: The One was always out there ahead. The Seeker just had to keep going.
+
+| Frame Range | The One (screen-rel) | Seeker | Scroll | Notes |
+|-------------|---------------------|--------|--------|-------|
+| 1800–1850 | (+8, 0.5), closing | Y: -0.5 → 0, pulse quickens | 0.025 | A bright square! Not a triangle! |
+| 1850–1880 | (+5, 0.3) | Y: 0 → 0.3 | 0.025 | Noticing each other. |
+| 1880–1910 | (+3, 0.2) | Y: 0.3 → 0.2, aligning | 0.02 | Approaching cautiously. |
+| 1910–1950 | (+1.5, 0.1) | Y: 0.1, nearly aligned | 0.01 | **THE PAUSE.** Both nearly still. |
+
+Seeker emission: 1.8 → 2.0 (back to full brightness).
+The One's pulse: same frequency, same amplitude — already in sync.
+
+### Beat 3.2: Mutual Recognition (Frames 1950–2040, 65s–68s)
+
+| Frame Range | The One (screen-rel) | Seeker | Scroll | Notes |
+|-------------|---------------------|--------|--------|-------|
+| 1950–1980 | (+1.2, 0.1) holds | Y: 0.1 holds | 0.005 | Frozen. 30 frames stillness. World holds breath. |
+| 1980–1995 | (+1.0, 0.05) | Y: 0.1 → 0.05 | 0.005 | Tentative approach |
+| 1995–2020 | (+0.6, 0) | Y: 0 | 0.005 | Meeting at midpoint |
+| 2020–2040 | (+0.4, 0), gap=0.6 | Y: 0 | 0.005 | Close, not touching. Pulse in perfect sync. |
+
+**Ortho scale → 16** (tight, intimate zoom).
+
+### Beat 3.3: First Orbit (Frames 2040–2250, 68s–75s)
+
+Scroll near-stopped. Smooth circular orbiting — direct contrast with triangles' angular orbits.
+
+| Frame Range | Speed | Radius | Notes |
+|-------------|-------|--------|-------|
+| 2040–2110 | 0.4 RPM | 0.8 | Gentle, testing. SMOOTH circle. |
+| 2110–2160 | 0.8 RPM | 0.7 | Growing comfort |
+| 2160–2200 | 1.5 RPM | 0.5 | Joyful! |
+| 2200–2250 | 2.5 RPM | 0.4 | Exuberant! |
+
+Both pulsing in sync. Orbit center slowly drifts toward screen center.
+
+### Beat 3.4: Side Alignment — "The Click" (Frames 2250–2460, 75s–82s)
+
+The payoff. Flat sides align flush. Two squares become one rectangle.
+
+| Frame Range | Movement | Notes |
+|-------------|----------|-------|
+| 2250–2300 | Decelerate to 0.8 RPM, radius 0.4 → 0.3 | Winding down |
+| 2300–2350 | 0.3 RPM, radius 0.3 → 0.15 | Almost still |
+| 2350–2390 | Final quarter-turn — flat sides face each other | Aligning. Ortho scale → 16. |
+| 2390–2420 | Slide together, gap 0.3 → 0.02 | **THE CLICK.** Flush. No gaps. No bonking. |
+| 2420–2440 | Hold. Perfectly flush. Combined rectangle. | Let the audience feel it. One slow rotation echoing the intro. |
+| 2440–2460 | Pulse intensifies: 1.0 → 1.06 → 1.0 | Shared heartbeat. |
+
+```
+Attempt 1 — Right-Angle Triangle:
+  ┌──┐ ◁       Flat leg teases → hypotenuse bonks → gap
+  │  │  \
+  └──┘   \
+         ──
+
+Attempt 2 — Isosceles Triangle:
+  ┌──┐  △      Wide base teases → taper breaks → gap
+  │  │ / \
+  └──┘/   \
+     ──────
+
+The One — Square:
+  ┌──┐┌──┐     Flat side meets flat side.
+  │  ││  │     Perfect flush → Rectangle.
+  └──┘└──┘     CLICK. ❤️
+```
+
+**Echo of the intro**: The combined rectangle briefly does one slow rotation (frames 2420–2440), recalling the parent shapes from the prologue. The audience subconsciously recognizes the structural mirror.
+
+---
+
+## Act IV — Union (Frames 2460–3150, 82s–105s)
+
+### Beat 4.1: Huddle (Frames 2460–2670, 82s–89s)
+
+| Frame Range | Movement | Scroll | Notes |
+|-------------|----------|--------|-------|
+| 2460–2500 | Flush contact (0.0 gap). One shape. | 0.02 (resuming) | Combined rectangle. |
+| 2500–2580 | Gentle sway: Y ±0.3 in sync | 0.025 | Rocking together. Moving as one. |
+| 2580–2670 | Sway continues, scroll accelerates | 0.03 | Traveling together. Not alone anymore. |
+
+Pulse: 1.0 → 1.08, period 40. Exactly synced.
+Emission: 2.0 → 3.0. Brightest things in the world.
+Corner trails: now **four** lines (both squares' left corners). Growing.
+
+### Beat 4.2: Accelerating Together (Frames 2670–2940, 89s–98s)
+
+| Frame Range | Scroll Speed | Notes |
+|-------------|--------------|-------|
+| 2670–2760 | 0.04 u/f | Faster than Seeker ever traveled alone |
+| 2760–2850 | 0.06 u/f | Background triangles streaming past |
+| 2850–2900 | 0.08 u/f | World is a blur |
+| 2900–2940 | 0.10 u/f | Racing forward together. Four long trail streaks. |
+
+**Trail effect**: Faint trail squares spawn behind every 10 frames, fading over 40 frames. Two parallel trails curve to suggest a heart shape.
+**Ortho scale → 24** (wide, world expanding).
+
+### Beat 4.3: Into the Light (Frames 2940–3150, 98s–105s)
+
+| Frame Range | Visual | Scroll | Notes |
+|-------------|--------|--------|-------|
+| 2940–3010 | Pair's glow expands: emission 3.0 → 5.0 | 0.10 | Glow bleeds beyond shapes |
+| 3010–3060 | Glow fills ~30% screen. BG triangles fading to 0. | 0.08 | World dissolving |
+| 3060–3100 | Glow fills ~60%. Background gone. | 0.05 | Just the pair and light |
+| 3100–3130 | White fills screen | 0.03 | Pure white |
+| 3130–3150 | White fades to black | 0 | End. |
 
 ---
 
 ## Animation Principles Reference
 
-### Speed & Proximity as Emotion
-
-| State           | Speed (units/frame) | Gap to Other | Pulse Rate | Meaning |
-|-----------------|---------------------|--------------|------------|---------|
-| Neutral         | 0.03–0.05           | N/A          | 45 frames  | Calm wandering |
-| Interest        | 0.02 (slower)       | Closing      | 40 frames  | Curiosity |
-| Discomfort      | 0.08–0.12 (recoil)  | Increasing   | 50 frames  | Avoidance |
-| Sadness         | 0.01–0.02           | N/A          | 55 frames  | Deflation |
-| Joy             | 0.15+ (spinning)    | Decreasing   | 35 frames  | Excitement |
-| Love            | 0.02 (gentle sway)  | Minimal      | 40 frames, synchronized | Bond |
-
 ### Contrast Table
 
-| Property          | Square (Mismatch 1) | Rectangle (Mismatch 2) | The One (Match) |
-|-------------------|---------------------|------------------------|-----------------|
-| Speed             | 4× Seeker           | Same as Seeker         | Same as Seeker  |
-| Movement Quality  | Erratic, zigzag     | Rigid, straight lines  | Smooth, curved  |
-| Approach Style    | Aggressive           | Indifferent            | Tentative, mutual |
-| Response to Seeker| Ignores recoil      | Ignores bump           | Mirrors perfectly |
-| Pulse             | 2× frequency        | None                   | Same frequency, same phase |
-| Exit behavior     | Leaves alone         | Leaves without pursuit | Leaves together |
-| Shape             | Angular              | Angular                | Circular (matches) |
+| Property | Right-Angle Tri | Isosceles Tri | The One |
+|----------|-----------------|---------------|---------|
+| Shape | Right-angle triangle | Isosceles triangle | Square (matches Seeker) |
+| Entry | From right (ahead) | From upper-right | From right (the future) |
+| Speed | 5× Seeker | Same as Seeker | Same as Seeker |
+| Movement | Erratic, zigzag | Rigid, straight lines | Smooth, curved |
+| Approach | Aggressive | Indifferent | Tentative, mutual |
+| Response | Ignores recoil | Ignores bump | Mirrors perfectly |
+| Pulse | 2× frequency | None | Same freq, same phase |
+| "Fit" | Flat leg → hypotenuse bonks | Wide base → taper fails | Flat → flat → **flush** |
+| Tension | Low (wrong energy) | High (almost fits!) | Resolution (it fits!) |
+| Exit | Left behind by scroll | Left behind, doesn't pursue | Leaves together, accelerating |
+| Emission | 0.8 | 0.8 | 2.0 (matches Seeker) |
 
 ---
 
 ## Technical Notes
 
 ### Camera
-- **Type**: Orthographic
-- **Position**: (0, 0, 10) looking straight down (-Z)
-- **Orthographic scale**: ~20 (to capture the full room)
-- **No camera movement** — static throughout
+- **Type**: Orthographic, top-down
+- **Position**: (Seeker.world_X, 0, 10)
+- **Ortho scale**: Animated 16–24 for emotional moments
+- **Implementation**: Animate camera X to match Seeker X each frame
+
+### World Coordinate System
+- Seeker starts at world X≈0, moves rightward
+- ~100 units traversed over 105 seconds
+- Background triangles pre-placed along path (~50 scattered)
+- Anything outside Seeker.X ± 10 is off-screen
+
+### Background Triangle Implementation
+- Pre-place ~50 triangles across the world path
+- Each gets slow drift + rotation
+- Fade-out: animate emission strength to 0 based on density curve schedule
+- Only ~6–8 visible at any moment
 
 ### Materials
-- All materials are **Emission** shaders (no lighting needed)
-- Black background = world color (0, 0, 0)
-- Characters: emission white/gray at various strengths
-- The glow effect at the end: a plane with emission material, animated opacity
+- All **Emission** shaders (no lighting)
+- Seeker emission animated for emotional barometer
+- Trail lines: thin planes with emission, length scaled per frame
 
 ### Easing
-- Seeker movement: ease-in-out-cubic for most movements
-- Square movement: linear or ease-out-bounce (jarring)
-- Rectangle movement: linear (mechanical, no easing)
-- The One: ease-in-out-cubic (same as Seeker — they match)
-- Orbiting: sinusoidal position (cos/sin with changing angular velocity)
+- Seeker: ease-in-out-cubic (deliberate)
+- Right-angle tri: linear / ease-out-bounce (jarring)
+- Isosceles tri: linear (mechanical)
+- The One: ease-in-out-cubic (matches Seeker)
+- Scroll speed changes: ease-in-out (smooth)
+- Background: linear (ambient)
 
-### Trail Effect (Act IV)
-- Implemented by spawning small, fading circles along the exit path
-- Each trail dot: scale 0.15, opacity starts at 0.4, fades to 0 over 30 frames
-- Spawn rate: 1 trail dot every 10 frames during exit
-- Arrange trail dots so the two parallel trails form a subtle heart curve
+### Corner Trail Implementation
+- Two thin glowing planes anchored to Seeker's left corners
+- Scale X = trail length (proportional to scroll speed)
+- Gradient material: bright at anchor, transparent at tail
+- When paired: four planes (rectangle's four left-edge corners)
