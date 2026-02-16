@@ -63,9 +63,6 @@ from scripts.animations.finding_the_one.systems import (
     apply_seeker_emission_curve,
     animate_background_triangles,
     apply_ortho_scale_shifts,
-    create_trail_lines,
-    animate_trail_lines,
-    create_fade_overlay,
 )
 from scripts.animations.finding_the_one.prologue import animate_prologue
 from scripts.animations.finding_the_one.act1 import animate_act1
@@ -119,11 +116,7 @@ the_one, one_mat = create_the_one()
 bg_triangles = create_background_triangles()
 
 
-# ══════════════════════════════════════════════════════════════
-#  CREATE VISUAL SYSTEMS
-# ══════════════════════════════════════════════════════════════
-
-trails = create_trail_lines(seeker)
+# (Trail lines removed — not rendering properly)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -206,8 +199,7 @@ apply_seeker_emission_curve(seeker_mat)
 # Background triangle density and fading
 animate_background_triangles(bg_triangles, seeker_world_positions)
 
-# Corner trail lines
-animate_trail_lines(trails, seeker_world_positions, scroll_speeds)
+# (Trail lines removed)
 
 # Orthographic scale shifts for emotional moments
 ortho_keyframes = [
