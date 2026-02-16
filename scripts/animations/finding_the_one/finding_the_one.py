@@ -85,12 +85,11 @@ camera = setup_ortho_camera(
 )
 
 setup_render(
-    engine='BLENDER_EEVEE',
     resolution=(1920, 1080),
     fps=FPS,
     frame_start=FRAME_START,
     frame_end=FRAME_END,
-    output_path='./output/finding_the_one/',
+    output_path='./output/finding_the_one',
 )
 
 
@@ -239,14 +238,10 @@ print(f"   Timeline: {FRAME_START}–{FRAME_END} ({FRAME_END // FPS}s at {FPS}fp
 # ══════════════════════════════════════════════════════════════
 
 if "--background" in sys.argv or "-b" in sys.argv:
-    print("🎬 Rendering 'Finding the One' animation frames...")
+    print(f"🎬 Rendering 'Finding the One' directly to video...")
+    print(f"   Output: {bpy.context.scene.render.filepath}")
     bpy.ops.render.render(animation=True)
-    print("✅ Frames rendered! Stitching video...")
-    frames_to_video(
-        frames_dir='./output/finding_the_one/',
-        output_file='./output/finding_the_one.mp4',
-        fps=FPS,
-    )
+    print("✅ Render complete!")
 else:
     print("👀 'Finding the One' loaded in GUI mode.")
     print("   Press Space in the viewport to preview the animation.")

@@ -142,35 +142,77 @@ def setup_render(
     fps=30,
     frame_start=1,
     frame_end=120,
-    output_path='./output/frames/',
-    file_format='PNG',
+    output_path='./output/render',
+    file_format='FFMPEG',
 ):
     """
-    Configure render settings.
+    Configure render settings optimized for Blender 5.0 and Apple Silicon.
 
-    Renders to PNG frame sequences by default, which is more robust than
-    direct FFMPEG output (supports resuming interrupted renders, lossless
-    intermediate frames, and flexible re-encoding).
-
-    Use frames_to_video() after rendering to stitch frames into an MP4.
+    Defaults to FFMPEG direct video export for speed on modern hardware,
+    but supports PNG sequences for robust production rendering.
     """
     scene = bpy.context.scene
+    
+    # 1. Hardware Optimization (Apple Silicon Metal)
+    try:
+        cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
+        cycles_prefs.compute_device_type = 'METAL'
+        # Refresh devices and enable GPU
+        cycles_prefs.get_devices()
+        for device in cycles_prefs.devices:
+            if device.type == 'METAL':
+                device.use = True
+        scene.cycles.device = 'GPU'
+    except Exception as e:
+        print(f"⚠️ Could not enable Metal GPU: {e}")
+
+    # 2. Engine Setup
+    # Blender 5.0 uses EEVEE as the primary real-time engine (formerly EEVEE_NEXT)
     scene.render.engine = engine
+
     scene.render.resolution_x = resolution[0]
     scene.render.resolution_y = resolution[1]
     scene.render.fps = fps
     scene.frame_start = frame_start
     scene.frame_end = frame_end
 
-    # Ensure output path ends with a separator for frame numbering
-    if not output_path.endswith('/'):
-        output_path += '/'
+    # 3. Output Configuration
+    image_settings = scene.render.image_settings
+    
+    if file_format == 'FFMPEG':
+        # Blender 5.0 requires setting media_type to 'VIDEO' before setting format to 'FFMPEG'
+        if hasattr(image_settings, "media_type"):
+            image_settings.media_type = 'VIDEO'
+        
+        image_settings.file_format = 'FFMPEG'
+        
+        # Optimized for M4 Pro playback compatibility
+        scene.render.ffmpeg.format = 'MPEG4'
+        scene.render.ffmpeg.codec = 'H264'
+        scene.render.ffmpeg.constant_rate_factor = 'HIGH'
+        scene.render.ffmpeg.ffmpeg_preset = 'GOOD'
+        
+        # Ensure path has .mp4 extension for direct video
+        if not output_path.lower().endswith('.mp4'):
+            output_path += '.mp4'
+    else:
+        # For image formats (PNG, etc)
+        if hasattr(image_settings, "media_type"):
+            image_settings.media_type = 'IMAGE'
+            
+        image_settings.file_format = file_format
+        
+        # For PNG sequences, ensure trailing slash
+        if not output_path.endswith('/'):
+            output_path += '/'
+            
     scene.render.filepath = output_path
 
-    scene.render.image_settings.file_format = file_format
     if file_format == 'PNG':
-        scene.render.image_settings.color_mode = 'RGBA'
-        scene.render.image_settings.compression = 15
+        image_settings.color_mode = 'RGBA'
+        image_settings.compression = 15
+
+
 
 
 def frames_to_video(frames_dir='./output/frames/', output_file='./output/animation.mp4', fps=30):
