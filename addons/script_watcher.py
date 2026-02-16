@@ -147,8 +147,18 @@ def execute_script(filepath):
     """
     state = _watcher_state
 
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(filepath)))
-    # e.g. /path/to/blender-animations from /path/to/blender-animations/scripts/animations/file.py
+    # Robustly find project root by searching upwards for 'scripts/' directory
+    curr = os.path.dirname(os.path.abspath(filepath))
+    project_root = None
+    while curr != os.path.dirname(curr):
+        if os.path.isdir(os.path.join(curr, "scripts")) and os.path.isdir(os.path.join(curr, "addons")):
+            project_root = curr
+            break
+        curr = os.path.dirname(curr)
+    
+    if project_root is None:
+        # Fallback to old 3-level-up logic
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(filepath))))
 
     # Ensure project root is in sys.path
     if project_root not in sys.path:

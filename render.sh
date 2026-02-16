@@ -1,4 +1,4 @@
-#!/bin/bash
+ #!/bin/bash
 # Convenience wrapper to run Blender with a Python script.
 #
 # Usage:
@@ -44,7 +44,7 @@ case "$MODE" in
         ;;
     gui)
         echo "🎬 Opening in Blender GUI: $SCRIPT"
-        "$BLENDER" --python "$SCRIPT"
+        "$BLENDER" --no-splash --python "$SCRIPT"
         ;;
     watch)
         # Convert script path to absolute
@@ -53,6 +53,6 @@ case "$MODE" in
         echo "   Hot-reload is active — save your script to see changes."
         echo "   Press Space in the Blender viewport to play the animation."
         echo ""
-        "$BLENDER" --python "$SCRIPT_DIR/addons/watch_bootstrap.py" -- "$ABS_SCRIPT"
+        "$BLENDER" --no-splash --python "$SCRIPT_DIR/addons/watch_bootstrap.py" -- "$ABS_SCRIPT"
         ;;
 esac

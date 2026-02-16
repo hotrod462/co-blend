@@ -1037,24 +1037,36 @@ kf_emission_strength(fade_mat, 2.0, 1800)  # Black emission covers scene
 
 
 # ══════════════════════════════════════════════════════════════
-#  SET INTERPOLATION TO LINEAR FOR LOCATION (crisper movement)
+#  POLISH: SET VIEWPORT & INTERPOLATION
 # ══════════════════════════════════════════════════════════════
 
 # Set all location/scale F-Curves to LINEAR interpolation
-# (the easing is baked into the keyframe values, so Blender
-#  should just lerp between them without additional smoothing)
+# (the easing is baked into the keyframe values)
 for obj in bpy.data.objects:
     if obj.animation_data and obj.animation_data.action:
-        for fcurve in obj.animation_data.action.fcurves:
-            for kp in fcurve.keyframe_points:
-                kp.interpolation = 'LINEAR'
+        # Blender 5.0+ might use "slotted" actions; check for fcurves attribute
+        if hasattr(obj.animation_data.action, "fcurves"):
+            for fcurve in obj.animation_data.action.fcurves:
+                for kp in fcurve.keyframe_points:
+                    kp.interpolation = 'LINEAR'
 
 # Do the same for material F-Curves
 for mat in bpy.data.materials:
     if mat.node_tree and mat.node_tree.animation_data and mat.node_tree.animation_data.action:
-        for fcurve in mat.node_tree.animation_data.action.fcurves:
-            for kp in fcurve.keyframe_points:
-                kp.interpolation = 'LINEAR'
+        if hasattr(mat.node_tree.animation_data.action, "fcurves"):
+            for fcurve in mat.node_tree.animation_data.action.fcurves:
+                for kp in fcurve.keyframe_points:
+                    kp.interpolation = 'LINEAR'
+
+# FORCE VIEWPORT TO CAMERA VIEW (so the user sees the 2D scene properly)
+if not ("--background" in sys.argv or "-b" in sys.argv):
+    for area in bpy.context.screen.areas:
+        if area.type == 'VIEW_3D':
+            for space in area.spaces:
+                if space.type == 'VIEW_3D':
+                    space.region_3d.view_perspective = 'CAMERA'
+                    # Also set the shading to Material Preview or Rendered for better look
+                    space.shading.type = 'RENDERED'
 
 
 # ══════════════════════════════════════════════════════════════
