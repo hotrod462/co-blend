@@ -5,9 +5,58 @@ import bpy
 import math
 
 
+def reset_scene():
+    """
+    Remove all scene contents without resetting the Blender session.
+
+    This is the hot-reload-safe version: it preserves the UI layout,
+    loaded addons, and preferences. Use this instead of clear_scene()
+    when working with the Script Watcher addon.
+    """
+    # Ensure we're in object mode
+    if bpy.context.mode != 'OBJECT':
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        except RuntimeError:
+            pass
+
+    # Remove all objects
+    for obj in bpy.data.objects:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+    # Remove all data blocks by type
+    for mesh in bpy.data.meshes:
+        bpy.data.meshes.remove(mesh, do_unlink=True)
+    for curve in bpy.data.curves:
+        bpy.data.curves.remove(curve, do_unlink=True)
+    for mat in bpy.data.materials:
+        bpy.data.materials.remove(mat, do_unlink=True)
+    for world in bpy.data.worlds:
+        bpy.data.worlds.remove(world, do_unlink=True)
+    for light in bpy.data.lights:
+        bpy.data.lights.remove(light, do_unlink=True)
+    for cam in bpy.data.cameras:
+        bpy.data.cameras.remove(cam, do_unlink=True)
+    for action in bpy.data.actions:
+        bpy.data.actions.remove(action, do_unlink=True)
+    for ng in bpy.data.node_groups:
+        bpy.data.node_groups.remove(ng, do_unlink=True)
+
+    # Purge orphaned data blocks
+    bpy.ops.outliner.orphans_purge(do_recursive=True)
+
+    # Reset timeline
+    bpy.context.scene.frame_set(1)
+
+
 def clear_scene():
-    """Remove all objects, meshes, materials, etc. from the scene."""
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    """
+    Remove all scene contents. Alias for reset_scene().
+
+    Uses the hot-reload-safe approach so it works with both
+    headless rendering and --watch mode.
+    """
+    reset_scene()
 
 
 def setup_camera(location=(7, -7, 5), target=(0, 0, 0)):
@@ -28,6 +77,27 @@ def setup_camera(location=(7, -7, 5), target=(0, 0, 0)):
     constraint.target = target_empty
     constraint.track_axis = 'TRACK_NEGATIVE_Z'
     constraint.up_axis = 'UP_Y'
+
+    bpy.context.scene.camera = camera
+    return camera
+
+
+def setup_ortho_camera(location=(0, 0, 10), ortho_scale=20):
+    """
+    Add a top-down orthographic camera looking straight down.
+    Ideal for 2D animation scenes.
+
+    Args:
+        location: Camera position (default: 10 units above origin)
+        ortho_scale: Width of the orthographic view in Blender units
+    Returns the camera object.
+    """
+    bpy.ops.object.camera_add(location=location)
+    camera = bpy.context.active_object
+    camera.name = "OrthoCamera"
+    camera.rotation_euler = (0, 0, 0)  # Looking straight down (-Z)
+    camera.data.type = 'ORTHO'
+    camera.data.ortho_scale = ortho_scale
 
     bpy.context.scene.camera = camera
     return camera
