@@ -116,13 +116,14 @@ def reload_project_modules(project_root):
     This ensures changes to utils (scene.py, materials.py, animation.py)
     are picked up without restarting Blender.
     """
+    scripts_dir = os.path.join(project_root, "scripts")
     modules_to_reload = []
 
     for name, module in list(sys.modules.items()):
         if module is None:
             continue
         module_file = getattr(module, '__file__', None)
-        if module_file and module_file.startswith(project_root):
+        if module_file and module_file.startswith(scripts_dir):
             modules_to_reload.append((name, module))
 
     # Sort by name depth so parent modules reload before children
