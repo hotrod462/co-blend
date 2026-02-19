@@ -7,23 +7,35 @@ import math
 # ── GLOBAL PARAMETERS ──
 FPS = 30
 FRAME_START = 1
-FRAME_END = 3150
-TOTAL_FRAMES = 3150
-DURATION_SECONDS = 105
+FRAME_END = 3750  # Extended to ~3750 (+250 frames for gaps and slower sync)
+TOTAL_FRAMES = 3750
+DURATION_SECONDS = 125 # approx
 
-# ── ACT BOUNDARIES ──
+# ── ACT BOUNDARIES (Shifted for gaps and slower sync) ──
 PROLOGUE_START = 1
 PROLOGUE_END = 330
+
+# Act 1: 330 -> 1200 (Unchanged duration, but exit logic changes)
 ACT1_START = 330
-ACT1_END = 990
-ACT2_START = 990
-ACT2_END = 1650
-VALLEY_START = 1650
-VALLEY_END = 1800
-ACT3_START = 1800
-ACT3_END = 2460
-ACT4_START = 2460
-ACT4_END = 3150
+ACT1_END = 1200
+
+# NEW GAP: 1200 -> 1400 (Seeker alone/recovery)
+# Act 2 Starts at 1400
+ACT2_START = 1400
+ACT2_END = 2400  # 1000 frames (same duration as before)
+
+# Valley: 2400 -> 2550
+VALLEY_START = 2400
+VALLEY_END = 2550
+
+# Act 3: 2550 -> 3250 (Extended by ~40 frames for slower sync)
+# Was 660 frames (2350->3010). Now 700 frames.
+ACT3_START = 2550
+ACT3_END = 3250
+
+# Act 4: 3250 -> 3750 (500 frames)
+ACT4_START = 3250
+ACT4_END = 3750
 
 # ── SCROLL SPEEDS ──
 SCROLL_STOP = 0.005
@@ -45,14 +57,16 @@ SEEKER_SIZE = 0.6
 SEEKER_FILL_GRAY = 1.0
 SEEKER_EMISSION = 2.0
 
+# Updated Emission to 2.0 (Partners)
 RIGHT_TRI_LEG = 0.7
 RIGHT_TRI_FILL_GRAY = 0.45
-RIGHT_TRI_EMISSION = 0.8
+RIGHT_TRI_EMISSION = 2.0
 
+# Updated Emission to 2.0 (Partners)
 ISO_TRI_BASE = 0.7
 ISO_TRI_HEIGHT = 0.9
 ISO_TRI_FILL_GRAY = 0.4
-ISO_TRI_EMISSION = 0.8
+ISO_TRI_EMISSION = 2.0
 
 ONE_SIZE = 0.6
 ONE_FILL_GRAY = 1.0
@@ -83,44 +97,62 @@ WORLD_PATH_LENGTH = 110
 VISIBLE_HALF_WIDTH = 10
 
 # ── EMISSION CURVE — more dramatic changes ──
+# Shifted keyframes to match new Act timing + Gap
 SEEKER_EMISSION_CURVE = [
     (200,  2.0),    # After birth
     (330,  2.0),    # Journey starts
-    (750,  1.0),    # After 1st rejection — dramatic dip
-    (870,  1.5),    # Partial recovery
-    (1350, 0.6),    # After 2nd rejection — very dim
-    (1500, 0.4),    # Alone
-    (1690, 0.3),    # Valley — near invisible
-    (1740, 0.3),    # The turn
-    (1770, 0.5),    # Noticing
-    (1800, 1.5),    # Hope
-    (1950, 2.0),    # Full brightness
-    (2460, 2.0),    # The click
-    (2670, 3.0),    # Union
-    (2940, 3.0),
-    (3060, 5.0),
-    (3150, 5.0),
+    
+    (1000, 1.0),    # Act 1 Rejection
+    (1150, 1.5),    # Act 1 Recovery start
+    
+    (1300, 1.5),    # Gap (Alone/Wandering)
+    (1400, 1.5),    # Act 2 Start
+    
+    (2150, 0.6),    # Act 2 Rejection
+    (2300, 0.4),    # Alone 
+    
+    (2440, 0.3),    # Valley
+    (2490, 0.3),    # The turn
+    (2520, 0.5),    # Noticing
+    (2550, 1.5),    # Hope (Act 3 Start)
+    
+    (2700, 2.0),    # Full brightness
+    (3250, 2.0),    # The click (Act 4 start)
+    (3370, 3.0),    # Union
+    (3550, 3.0),
+    (3750, 5.0),    # End
 ]
 
 # ── BG DENSITY CURVE ──
+# Shifted keyframes
 BG_DENSITY_CURVE = [
     (1,    0),
     (270,  0),
     (300,  3),
     (330,  7),
+    
+    # Act 1 (330-1200)
     (630,  8),
-    (990,  10),
-    (1110, 7),
-    (1350, 5),
-    (1500, 3),
-    (1650, 1),
-    (1690, 0),
-    (1800, 0),
-    (2460, 1),
-    (2670, 2),
-    (2940, 1),
-    (3060, 0),
-    (3150, 0),
+    (1200, 10),
+    
+    # Gap (1200-1400) - Alone
+    (1300, 7),
+    
+    # Act 2 (1400-2400)
+    (1600, 10),
+    (2150, 5),    # End of Act 2 interaction
+    (2300, 3),    # Alone again
+    
+    # Valley (2400-2550)
+    (2400, 1),    
+    (2450, 0),
+    (2550, 0),    # Act 3 start
+    
+    (3250, 0),    # Act 4 start
+    (3280, 5),    # Return
+    (3370, 7),    # Full density
+    (3550, 5),    # Fade
+    (3750, 0),
 ]
 
 # ── Y-DRIFT RANGE ──

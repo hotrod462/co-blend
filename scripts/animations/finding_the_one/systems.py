@@ -1,7 +1,7 @@
 """
 Finding the One — Visual Systems.
 Scrolling camera, emission curves, background management, ortho scale.
-Trail lines REMOVED (not rendering properly).
+Updated for extended timeline with Gap.
 """
 import bpy
 import math
@@ -21,24 +21,55 @@ from scripts.animations.finding_the_one.helpers import (
 
 
 # ══════════════════════════════════════════════════════════════
-#  SCROLL SPEED SCHEDULE
+#  SCROLL SPEED SCHEDULE (UPDATED)
 # ══════════════════════════════════════════════════════════════
 
 def build_scroll_schedule():
     speed_keyframes = [
+        # Prologue & Start (1-330)
         (1,    0.0), (270, 0.0), (300, 0.03), (330, 0.03),
-        (630,  0.03), (680, 0.02), (720, 0.01), (750, 0.01),
-        (820,  0.015), (870, 0.03),
-        (990,  0.03), (1030, 0.02), (1070, 0.01), (1110, 0.01),
-        (1210, 0.005), (1350, 0.015), (1390, 0.02), (1470, 0.025),
-        (1500, 0.025), (1650, 0.012), (1690, 0.008),
-        (1740, 0.008), (1770, 0.010), (1800, 0.020),
-        (1850, 0.025), (1910, 0.01), (1950, 0.005),
-        (2040, 0.005), (2250, 0.005), (2460, 0.02),
-        (2500, 0.02), (2580, 0.025), (2670, 0.03),
-        (2760, 0.04), (2850, 0.06), (2900, 0.08), (2940, 0.10),
-        (3010, 0.10), (3060, 0.08), (3100, 0.05),
-        (3130, 0.03), (3150, 0.0),
+        
+        # Act 1 (330-1200): Encounter slows down significantly
+        (630,  0.03), 
+        (750,  0.02),  
+        (880,  0.01),  
+        (1000, 0.01),  
+        (1100, 0.015), 
+        (1200, 0.03),  # Back to normal speed (Recovery)
+        
+        # New Gap: Wandering Alone (1200-1400)
+        (1300, 0.03),
+        (1400, 0.03),  # Entering Act 2
+        
+        # Act 2 (1400-2400): Isosceles encounter starts
+        (1450, 0.03),  # Starts slowing 50f in
+        (1600, 0.02), 
+        (1750, 0.01),  # Crawling approach
+        (1900, 0.005), # Near standstill for orbit
+        (2050, 0.015), # Leaving
+        (2200, 0.02),  # Slowsad walk
+        (2300, 0.025), # Alone again
+        (2400, 0.025), # End of Act 2
+        
+        # Valley (2400-2550)
+        (2450, 0.012), 
+        (2500, 0.008),
+        (2550, 0.020), # Hope returns
+        
+        # Act 3 (2550-3250)
+        (2600, 0.025), 
+        (2750, 0.01), 
+        (2850, 0.005), # Slow orbit/sync
+        (3000, 0.005), 
+        (3250, 0.02),  # The Click
+        
+        # Act 4 (3250-3750)
+        (3350, 0.03), 
+        (3450, 0.06), 
+        (3550, 0.08),
+        (3600, 0.10), 
+        (3700, 0.05), 
+        (3750, 0.0),
     ]
 
     speeds = {}
@@ -86,7 +117,6 @@ def apply_seeker_emission_curve(seeker_mat):
     for i in range(len(curve) - 1):
         f0, e0 = curve[i]
         f1, e1 = curve[i + 1]
-        # Keyframe every frame for smooth transitions
         for f in range(f0, f1 + 1):
             t = (f - f0) / max(f1 - f0, 1)
             emission = lerp(e0, e1, t)
@@ -109,17 +139,13 @@ def _interp_density(frame):
 
 
 def animate_background_triangles(bg_triangles, seeker_world_positions):
-    """Manage BG triangle visibility/fading and add visible bobbing movement."""
     sorted_tris = sorted(bg_triangles, key=lambda t: t[2])
-
-    # Per-triangle fade state tracking
-    # Each triangle smoothly fades between 0 and BG_TRI_EMISSION
     tri_target_emission = {}
     for obj, mat, wx, wy in sorted_tris:
         tri_target_emission[id(obj)] = 0.0
 
     for f in range(FRAME_START, FRAME_END + 1):
-        if f % 5 != 0 and f != FRAME_START:  # every 5 frames
+        if f % 5 != 0 and f != FRAME_START: 
             continue
 
         cam_x = seeker_world_positions.get(f, 0)
@@ -137,7 +163,6 @@ def animate_background_triangles(bg_triangles, seeker_world_positions):
             else:
                 kf_emission_strength(mat, 0.0, f)
 
-    # Add visible bobbing movement around home positions
     import random
     random.seed(99)
     for obj, mat, wx, wy in bg_triangles:
@@ -166,9 +191,23 @@ def animate_background_triangles(bg_triangles, seeker_world_positions):
 # ══════════════════════════════════════════════════════════════
 
 def apply_ortho_scale_shifts(camera, scale_keyframes):
-    for i in range(len(scale_keyframes) - 1):
-        f0, s0 = scale_keyframes[i]
-        f1, s1 = scale_keyframes[i + 1]
+    # Updated keyframes for new timeline
+    # 2460 -> 3250 Act 3 Ends
+    new_kf = [
+        (1, 20),
+        (880, 18),   # Act 1 Encounter
+        (1200, 20),  # Act 1 End / Recovery
+        (1400, 20),  # Gap (Wandering Normal)
+        (1850, 18),  # Act 2 Encounter (midway)
+        (2400, 22),  # Lonely/Valley
+        (3250, 16),  # The Click (Act 3 End)
+        (3450, 20),
+        (3750, 24)
+    ]
+    
+    for i in range(len(new_kf) - 1):
+        f0, s0 = new_kf[i]
+        f1, s1 = new_kf[i + 1]
         for f in range(f0, f1 + 1):
             t = (f - f0) / max(f1 - f0, 1)
             scale = lerp(s0, s1, ease_in_out_cubic(t))
