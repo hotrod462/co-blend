@@ -52,24 +52,29 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
             lt = (t - 0.8) / 0.2
             tri_screen_x = lerp(5.2, 2.0, ease_in_out_cubic(lt))
 
+        # Seeker Pop Notice around frame 1500 (t≈0.22)
+        seeker_pop_scale = 1.0
+        seeker_pop_em = 2.0
+        if 1500 <= f <= 1580:
+            pt = (f - 1500) / 80.0
+            seeker_pop_scale = 1.0 + 0.3 * math.sin(pt * math.pi)
+            seeker_pop_em = 2.0 + 1.2 * math.sin(pt * math.pi)
+        
+        kf_scale(seeker, seeker_pop_scale, f)
+        kf_emission_strength(seeker_mat, seeker_pop_em, f)
+
         # Organic random drift logic
         drift_y = (0.5 * math.sin(t * 1.5 * math.pi)
                    + 0.4 * math.cos(t * 3.0 * math.pi)
                    + 0.3 * math.sin(t * 4.5 * math.pi))
         drift_x_wobble = 0.4 * math.sin(t * 2.8 * math.pi)
         
-        # Y-Alignment: Force drift to approach 0 at end
         if t > 0.8:
             drift_y = lerp(drift_y, 0, (t-0.8)/0.2)
 
-        # Rigid rotation (snapped) - Frame based
-        # 12 snaps over t=0..1 means ~37 frames/snap. Let's start slow.
         rigid_rot = math.floor(t * 12) * (math.pi / 4)
-        
-        # Seeker mimics (starts midway)
         if t > 0.4:
             st = (t - 0.4) / 0.6
-            # Slightly off-cadence mimicry
             seeker_rot = math.floor(st * 10) * (math.pi / 4) 
         else:
             seeker_rot = 0
@@ -77,9 +82,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(iso_tri, wx + tri_screen_x + drift_x_wobble, drift_y, f)
         kf_rot_z(iso_tri, rigid_rot, f)
 
-        # Seeker notices very slowly
         seeker_y = lerp(0, 0.1, ease_in_out_cubic(min(t * 1.5, 1.0)))
-        if t > 0.9: seeker_y = lerp(seeker_y, 0, (t-0.9)/0.1) # Align to 0
+        if t > 0.9: seeker_y = lerp(seeker_y, 0, (t-0.9)/0.1) 
         seeker_y_out[f] = seeker_y
         kf_loc(seeker, wx, seeker_y, f)
         kf_rot_z(seeker, seeker_rot, f)
@@ -87,16 +91,6 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     apply_pulse(seeker, entry_start, entry_end, period=45, amplitude=0.03)
 
     # ── Beat 2.2: Stiff Interaction (1850–2120) ──
-    seeker_spin = 0.0 # reset for smooth orbit? No, keep it jerky?
-    # User said: "maintain the jerky rotation... entrance, pairing, departure"
-    # So both should be jerky? Or just Triangle?
-    # User said: "have both... rotate about their centres... maintain the jerky rotation... that the isosceles triangle comes in with throughout all of its screen time"
-    # Implies Triangle = Jerky. Seeker = Mimics (so Jerky).
-    
-    # Let's use a global snap counter for both for Act 2.
-    snap_frame_offset = 0
-
-    # --- Circular Orbit (1850–2000) ---
     orbit_start = 1850
     orbit_end = 2000
     
@@ -112,23 +106,22 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(seeker, cx + radius * math.cos(angle + math.pi), cy + radius * math.sin(angle + math.pi), f)
         seeker_y_out[f] = cy + radius * math.sin(angle + math.pi)
 
-        # Jerky Rotation
-        # Spin increases over time (angle increases)
-        # Map angle to 45 deg snaps
         iso_rot = math.floor(angle / (math.pi/4)) * (math.pi / 4) + rigid_rot
         seeker_rot = math.floor((angle + math.pi) / (math.pi/4)) * (math.pi / 4)
         
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot, f)
+        
+        # Emission Pulse
+        pulse_period = lerp(50, 20, t)
+        phase = (f - orbit_start) / pulse_period * 2 * math.pi
+        pulse_em = 2.0 + 0.6 * (0.5 + 0.5 * math.sin(phase))
+        kf_emission_strength(seeker_mat, pulse_em, f)
+        kf_emission_strength(iso_tri_mat, pulse_em, f)
 
     # --- TEASE (2000–2050) ---
-    last_orbit_angle = 2.5 * math.pi
-    last_radius = 1.5
     tease_start = 2000
     tease_end = 2050
-    
-    last_iso_rot = iso_rot
-    last_seeker_rot = seeker_rot
     
     for f in range(tease_start, tease_end + 1):
         t = (f - tease_start) / (tease_end - tease_start)
@@ -136,28 +129,31 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
         if t < 0.4:
             lt = t / 0.4
-            angle = last_orbit_angle + lt * 0.4 * math.pi
-            radius = lerp(last_radius, 0.6, ease_in_out_cubic(lt))
+            angle = 2.5 * math.pi + lt * 0.4 * math.pi
+            radius = lerp(1.5, 0.6, ease_in_out_cubic(lt))
             cx = wx + 0.3
             cy = 0
             kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
             kf_loc(seeker, cx + radius * math.cos(angle + math.pi)*0.3, cy, f)
             seeker_y_out[f] = cy
             
-            cur_angle_iso = last_orbit_angle + lt * 0.4 * math.pi
+            cur_angle_iso = 2.5 * math.pi + lt * 0.4 * math.pi
             iso_rot = math.floor(cur_angle_iso / (math.pi/4)) * (math.pi/4) + rigid_rot
             seeker_rot = math.floor((cur_angle_iso + math.pi) / (math.pi/4)) * (math.pi/4)
-
         else:
             lt = (t - 0.4) / 0.6
             gap = lerp(0.6, 0.15, ease_in_out_cubic(lt))
             kf_loc(iso_tri, wx + gap / 2 + 0.2, 0, f)
             kf_loc(seeker, wx - gap / 2 + 0.2, 0, f)
             seeker_y_out[f] = 0
-            # Freeze rotation
             
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot, f)
+        
+        # Pulse during tease
+        pulse_em = 2.0 + 0.8 * (0.5 + 0.5 * math.sin(f * 0.5))
+        kf_emission_strength(seeker_mat, pulse_em, f)
+        kf_emission_strength(iso_tri_mat, pulse_em, f)
 
     apply_pulse(seeker, tease_start, tease_end, period=30, amplitude=0.04)
 
@@ -169,7 +165,7 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - bonk_start) / (bonk_end - bonk_start)
         wx = seeker_world_positions.get(f, 0)
         
-        rot_offset = math.floor(t * 2) * (math.pi / 4) # 1 snap
+        rot_offset = math.floor(t * 2) * (math.pi / 4)
         bump = 0.3 * math.sin(t * math.pi)
         
         kf_loc(iso_tri, wx + 0.5 + bump, bump * 0.5, f)
@@ -177,8 +173,6 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         seeker_y_out[f] = recoil_y
         kf_loc(seeker, wx + recoil_y * 0.2, recoil_y, f)
 
-        # Seeker stops syncing
-        # Triangle snaps once
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot + rot_offset, f)
         
@@ -190,24 +184,23 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - post_start) / (post_end - post_start)
         wx = seeker_world_positions.get(f, 0)
         
+        # Higher angular velocity and ends BEHIND (3.0 pi)
         radius = lerp(1.0, 2.5, ease_in_out_cubic(t)) 
-        orbit_angle = t * 1.5 * math.pi
+        orbit_angle = t * 3.0 * math.pi
         
         tri_rel_x = radius * math.cos(orbit_angle) 
         tri_rel_y = radius * math.sin(orbit_angle)
         
         kf_loc(iso_tri, wx + tri_rel_x, tri_rel_y, f)
         
-        # Consistent jerky spin
-        cur_rot = iso_rot_base + math.floor(t * 3) * (math.pi / 4)
+        cur_rot = iso_rot_base + math.floor(t * 6) * (math.pi / 4)
         kf_rot_z(iso_tri, cur_rot, f)
 
         seeker_y_out[f] = lerp(-0.3, -1.0, ease_in_out_cubic(t))
         kf_loc(seeker, wx, seeker_y_out[f], f)
-        kf_rot_z(seeker, seeker_rot, f) # stuck
+        kf_rot_z(seeker, seeker_rot, f)
 
     # --- LEFT EXIT & FADE (2120–2400) ---
-    # Sporadic surges
     exit_start = 2120
     exit_end = 2400
     last_rot = cur_rot
@@ -216,27 +209,34 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - exit_start) / (exit_end - exit_start)
         wx = seeker_world_positions.get(f, 0)
         
-        # Seeker sadness
-        if t < 0.3:
-             y = lerp(-1.0, -1.8, ease_in_out_cubic(t/0.3))
-        else:
-             y = -1.8
+        # Seeker Depression: Deepening sine wave bobbing + dimming
+        base_y_trans = lerp(-1.0, -1.8, ease_in_out_cubic(min(t / 0.3, 1.0)))
+        bob_amplitude = lerp(0.3, 2.0, t)
+        y = base_y_trans - bob_amplitude * abs(math.sin(t * 6 * math.pi))
+        
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
         
+        # Reset rotation to 0 gradually
+        if t < 0.2:
+            st = t / 0.2
+            kf_rot_z(seeker, lerp(seeker_rot, 0, ease_in_out_cubic(st)), f)
+        else:
+            kf_rot_z(seeker, 0, f)
+            
+        # Dimming seeker brightness
+        seeker_em = lerp(2.0, 0.4, t)
+        kf_emission_strength(seeker_mat, seeker_em, f)
+        
         # Triangle Exit: Sporadic leftward
-        base_offset = lerp(2.5, -20.0, math.pow(t, 2))
-        
-        # Surges (trying to come back right)
-        surge = 2.0 * (1.0 - t) * math.sin(t * 4 * math.pi)
+        base_offset = lerp(radius, -20.0, math.pow(t, 2))
+        surge = 2.5 * (1.0 - t) * math.sin(t * 5 * math.pi)
         if surge < 0: surge = 0
-        
         offset = base_offset + surge
         
-        kf_loc(iso_tri, wx + offset, 0, f)
+        kf_loc(iso_tri, wx + offset, tri_rel_y * (1.0 - t), f)
         
-        # Still jerky spinning
-        snaps = math.floor(t * 5)
+        snaps = math.floor(t * 8)
         kf_rot_z(iso_tri, last_rot + snaps * (math.pi / 4), f)
 
         if t > 0.8:

@@ -33,37 +33,53 @@ def animate_prologue(parent_a, parent_a_mat, parent_b, parent_b_mat,
     center_x = seeker_world_positions.get(1, 0)
     center_y = 0
 
-    orbit_pair(parent_a, parent_b, (center_x, center_y),
-               frame_start=1, frame_end=30,
-               radius_start=2.0, radius_end=2.0,
-               rpm_start=1.0, rpm_end=1.0)
+    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
+                       frame_start=1, frame_end=30,
+                       radius_start=2.0, radius_end=2.0,
+                       rpm_start=1.0, rpm_end=1.0)
 
     # ── Beat P.2: Spiral Inward (Frames 30–90) ───────────────
-    orbit_pair(parent_a, parent_b, (center_x, center_y),
-               frame_start=30, frame_end=60,
-               radius_start=2.0, radius_end=1.0,
-               rpm_start=1.0, rpm_end=1.5)
+    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
+                       frame_start=30, frame_end=60,
+                       radius_start=2.0, radius_end=1.0,
+                       rpm_start=1.0, rpm_end=1.5, start_angle=angle)
 
-    orbit_pair(parent_a, parent_b, (center_x, center_y),
-               frame_start=60, frame_end=90,
-               radius_start=1.0, radius_end=0.5,
-               rpm_start=1.5, rpm_end=2.0)
+    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
+                       frame_start=60, frame_end=90,
+                       radius_start=1.0, radius_end=0.5,
+                       rpm_start=1.5, rpm_end=2.0, start_angle=angle)
 
     # ── Beat P.3: The Alignment (Frames 90–130) ──────────────
-    orbit_pair(parent_a, parent_b, (center_x, center_y),
-               frame_start=90, frame_end=110,
-               radius_start=0.5, radius_end=0.3,
-               rpm_start=2.0, rpm_end=0.5)
+    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
+                       frame_start=90, frame_end=110,
+                       radius_start=0.5, radius_end=0.3,
+                       rpm_start=2.0, rpm_end=0.5, start_angle=angle)
 
-    # Slide together: gap shrinks 0.3 → 0 (110–130)
+    # Normalize final angle to find nearest horizontal alignment
+    # parent_a ideally ends at math.pi (left side)
+    target_angle = math.pi
+    
+    # Slide together: gap shrinks 0.3 → 0 (110–130), angle aligns to horizontal
     for f in range(110, 131):
         t = (f - 110) / 20.0
         gap = lerp(0.3, 0.0, ease_in_out_cubic(t))
-        align_angle = lerp(0, math.pi / 2, ease_in_out_cubic(t))
-        kf_loc(parent_a, center_x - gap, center_y, f)
-        kf_loc(parent_b, center_x + gap, center_y, f)
-        kf_rot_z(parent_a, align_angle, f)
-        kf_rot_z(parent_b, align_angle + math.pi, f)
+        # Smoothly move from whatever angle they were at to the aligned horizontal position
+        cur_angle = lerp(angle, target_angle, ease_in_out_cubic(t))
+        
+        ax = center_x + gap * math.cos(cur_angle)
+        ay = center_y + gap * math.sin(cur_angle)
+        bx = center_x + gap * math.cos(cur_angle + math.pi)
+        by = center_y + gap * math.sin(cur_angle + math.pi)
+        
+        kf_loc(parent_a, ax, ay, f)
+        kf_loc(parent_b, bx, by, f)
+        
+        # Aligned spin to π/2 (horizontal hypotenuse)
+        # The parents are right triangles. To form a square, hypotenuses face each other.
+        # This part depends on the mesh orientation, but let's lerp to a clean 90deg.
+        align_rot = lerp(cur_angle, math.pi / 2, ease_in_out_cubic(t))
+        kf_rot_z(parent_a, align_rot, f)
+        kf_rot_z(parent_b, align_rot + math.pi, f)
 
     # Frame 125–130: CLICK — flush together
     for f in range(125, 131):

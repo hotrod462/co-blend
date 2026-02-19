@@ -111,65 +111,33 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
     for f in range(beat2_end, end + 1):
         t = (f - beat2_end) / (end - beat2_end)
         wx = seeker_world_positions.get(f, 0)
-        sway = 0.1 * math.sin(t * 2 * math.pi)
         
-        kf_loc(seeker, wx + half, sway, f)
-        kf_loc(the_one, wx - half, sway, f)
+        # Sway decreases as they prepare for the launch/growth
+        sway = 0.1 * math.sin(t * 2 * math.pi) * (1.0 - t)
+        
+        # Grow to fill screen: Scale increases dramatically
+        # At scale ~35, they cover the entire viewport (20 units wide)
+        grow_scale = lerp(1.0, 45.0, math.pow(t, 3)) # Accelerate growth
+        kf_scale(seeker, grow_scale, f)
+        kf_scale(the_one, grow_scale, f)
+        
+        # Offset to keep them touching as they grow
+        current_half = (SEEKER_SIZE * grow_scale) / 2.0
+        
+        kf_loc(seeker, wx + current_half, sway, f)
+        kf_loc(the_one, wx - current_half, sway, f)
         kf_rot_z(seeker, target_rotation, f)
         kf_rot_z(the_one, target_rotation, f)
         seeker_y_out[f] = sway
         
-        em = lerp(3.0, 5.0, ease_in_out_cubic(t))
+        # Emission intensifies to blinding white
+        em = lerp(3.0, 10.0, math.pow(t, 2))
         kf_emission_strength(seeker_mat, em, f)
         kf_emission_strength(one_mat, em, f)
-
-    apply_pulse(seeker, beat2_end, end, period=40, amplitude=0.04)
-    apply_pulse(the_one, beat2_end, end, period=40, amplitude=0.04)
-
-    # Glow overlay
-    glow_mat = create_emission_material("GlowOverlayMat", color=(1,1,1,1), strength=0.0)
-    bpy.ops.mesh.primitive_plane_add(size=60, location=(0, 0, 0.3))
-    glow = bpy.context.active_object
-    glow.name = "GlowOverlay"
-    assign_material(glow, glow_mat)
-    
-    glow_start = beat2_end + 40
-    glow_mid = end - 50
-    glow_peak = end - 20
-    
-    kf_scale(glow, 0.0, 1)
-    kf_scale(glow, 0.0, glow_start - 1)
-    kf_scale(glow, 1.0, glow_start)
-    
-    for f in range(glow_start, end + 1):
-        wx = seeker_world_positions.get(f, 0)
-        glow.location = (wx, 0, 0.3)
-        glow.keyframe_insert(data_path="location", frame=f)
         
-    kf_emission_strength(glow_mat, 0.0, glow_start)
-    kf_emission_strength(glow_mat, 0.3, glow_mid)
-    kf_emission_strength(glow_mat, 1.0, glow_peak)
-    kf_emission_strength(glow_mat, 2.0, end)
-
-    # Fade to black
-    fade_mat = create_emission_material("FadeToBlackMat", color=(0,0,0,1), strength=0.0)
-    bpy.ops.mesh.primitive_plane_add(size=60, location=(0, 0, 0.5))
-    fade = bpy.context.active_object
-    fade.name = "FadeToBlack"
-    assign_material(fade, fade_mat)
-    
-    fade_start = end - 20
-    
-    kf_scale(fade, 0.0, 1)
-    kf_scale(fade, 0.0, fade_start - 1)
-    kf_scale(fade, 1.0, fade_start)
-    
-    for f in range(fade_start, end + 1):
-        wx = seeker_world_positions.get(f, 0)
-        fade.location = (wx, 0, 0.5)
-        fade.keyframe_insert(data_path="location", frame=f)
-        
-    kf_emission_strength(fade_mat, 0.0, fade_start)
-    kf_emission_strength(fade_mat, 3.0, end)
+        # At the very end, shift color slightly to 'pure light'
+        if t > 0.8:
+            kf_emission_color(seeker_mat, 1, 1, 1, 1, f)
+            kf_emission_color(one_mat, 1, 1, 1, 1, f)
 
     return trail_objects

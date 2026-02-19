@@ -134,21 +134,21 @@ def apply_sigh(obj, frame_start, frame_end, depth=0.08):
 # ══════════════════════════════════════════════════════════════
 
 def orbit_pair(obj_a, obj_b, center, frame_start, frame_end,
-               radius_start, radius_end, rpm_start, rpm_end):
+               radius_start, radius_end, rpm_start, rpm_end, start_angle=0.0):
     """
     Orbit two objects around a center point (always opposite each other).
     RPM here means revolutions per 60 frames (2 seconds).
+    Now includes self-rotation and returns final angle for smooth transitions.
     """
     total = frame_end - frame_start
+    angle = start_angle
     for f in range(frame_start, frame_end + 1):
         t = (f - frame_start) / max(total, 1)
         radius = lerp(radius_start, radius_end, t)
+        
         # Accumulate angle
-        angle = 0.0
-        for ff in range(frame_start, f + 1):
-            tt = (ff - frame_start) / max(total, 1)
-            rpm_at = lerp(rpm_start, rpm_end, tt)
-            angle += rpm_at * 2 * math.pi / 60.0
+        rpm_at = lerp(rpm_start, rpm_end, t)
+        angle += rpm_at * 2 * math.pi / 60.0
 
         ax = center[0] + radius * math.cos(angle)
         ay = center[1] + radius * math.sin(angle)
@@ -157,6 +157,20 @@ def orbit_pair(obj_a, obj_b, center, frame_start, frame_end,
 
         kf_loc(obj_a, ax, ay, f)
         kf_loc(obj_b, bx, by, f)
+        # Self-rotation: center of triangle follows the orbit angle
+        kf_rot_z(obj_a, angle, f)
+        kf_rot_z(obj_b, angle + math.pi, f)
+    
+    return angle
+
+
+def apply_emission_pulse(mat, frame_start, frame_end, period=45,
+                        amplitude=0.5, base_emission=2.0):
+    """Apply a continuous emission brightness oscillation over a frame range."""
+    for f in range(frame_start, frame_end + 1):
+        phase = (f - frame_start) / period * 2 * math.pi
+        e = base_emission + amplitude * (0.5 + 0.5 * math.sin(phase))
+        kf_emission_strength(mat, e, f)
 
 
 def orbit_single(obj, center_x, center_y, frame_start, frame_end,

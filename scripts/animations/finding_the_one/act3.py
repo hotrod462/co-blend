@@ -139,6 +139,13 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         one_spin += one_rot_speed
         kf_rot_z(seeker, seeker_spin, f)
         kf_rot_z(the_one, one_spin, f)
+        
+        # Emission Pulse: Speeds up
+        pulse_period = lerp(45, 12, t)
+        phase = (f - beat2_end) / pulse_period * 2 * math.pi
+        pulse_em = 2.0 + 1.0 * (0.5 + 0.5 * math.sin(phase))
+        kf_emission_strength(seeker_mat, pulse_em, f)
+        kf_emission_strength(one_mat, pulse_em, f)
 
     apply_pulse(seeker, beat2_end, beat3_end, period=35, amplitude=0.04)
     apply_pulse(the_one, beat2_end, beat3_end, period=35, amplitude=0.04)
@@ -166,6 +173,10 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
             rev_speed = lerp(1.0 / 25.0, 1.0 / 100.0, ease_in_out_cubic(st))
             r = lerp(0.45, 0.38, ease_in_out_cubic(st))
             angle_34 += rev_speed * 2 * math.pi
+            # Pulsing continues
+            pulse_em = 2.0 + 1.0 * (0.5 + 0.5 * math.sin(f * 0.6))
+            kf_emission_strength(seeker_mat, pulse_em, f)
+            kf_emission_strength(one_mat, pulse_em, f)
             
         # Phase 2: Angle Align (70-150) -- SLOWER (80 frames)
         elif rel_f <= 150:
@@ -174,6 +185,10 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
             r = lerp(0.38, half + 0.05, ease_in_out_cubic(st))
             angle_34 = lerp(angle_34, target_orbit_angle, ease_in_out_cubic(st * 0.8))
             angle_34 += rev_speed * 2 * math.pi
+            # Pulse fades out
+            pulse_em = 2.0 + lerp(1.0, 0, st) * (0.5 + 0.5 * math.sin(f * 0.6))
+            kf_emission_strength(seeker_mat, pulse_em, f)
+            kf_emission_strength(one_mat, pulse_em, f)
             
         # Phase 3: Gap Close (150-200) -- Clean (50 frames)
         elif rel_f <= 200:
@@ -181,11 +196,16 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
             angle_34 = target_orbit_angle
             gap = lerp(0.05, 0.0, ease_in_out_cubic(st))
             r = half + gap
+            # NO PULSE: Static brightness (solid connection)
+            kf_emission_strength(seeker_mat, 2.0, f)
+            kf_emission_strength(one_mat, 2.0, f)
             
         # Phase 4: Hold (200-250)
         else:
             angle_34 = target_orbit_angle
             r = half
+            kf_emission_strength(seeker_mat, 2.0, f)
+            kf_emission_strength(one_mat, 2.0, f)
 
         sx = cx + r * math.cos(angle_34)
         sy = cy + r * math.sin(angle_34)
@@ -197,17 +217,15 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         seeker_y_out[f] = sy
 
         # Sync Rotation (slower now too)
-        # Matches Phase 2 (Angle Align)
         if rel_f <= 150:
             st = rel_f / 150.0 
             blend = ease_in_out_cubic(st)
             seeker_spin += lerp(0.03, 0.005, blend)
             one_spin += lerp(0.03, 0.005, blend)
             
-            cur_seeker_rot = lerp(seeker_spin, target_seeker_rot, blend * 0.8) # partial
+            cur_seeker_rot = lerp(seeker_spin, target_seeker_rot, blend * 0.8) 
             cur_one_rot = lerp(one_spin, target_one_rot, blend * 0.8)
             
-            # Snap at very end
             if rel_f > 140:
                 snap_t = (rel_f - 140)/10.0
                 cur_seeker_rot = lerp(cur_seeker_rot, target_seeker_rot, snap_t)
