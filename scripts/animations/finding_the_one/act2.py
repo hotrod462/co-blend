@@ -229,12 +229,14 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_emission_strength(seeker_mat, seeker_em, f)
         
         # Triangle Exit: Sporadic leftward
-        base_offset = lerp(radius, -20.0, math.pow(t, 2))
+        base_offset = lerp(-radius, -20.0, math.pow(t, 2)) # Negative radius prevents teleport
         surge = 2.5 * (1.0 - t) * math.sin(t * 5 * math.pi)
         if surge < 0: surge = 0
         offset = base_offset + surge
         
-        kf_loc(iso_tri, wx + offset, tri_rel_y * (1.0 - t), f)
+        # Bouncing exit
+        tri_y = tri_rel_y * (1.0 - t) + 1.2 * math.sin(t * 8 * math.pi)
+        kf_loc(iso_tri, wx + offset, tri_y, f)
         
         snaps = math.floor(t * 8)
         kf_rot_z(iso_tri, last_rot + snaps * (math.pi / 4), f)

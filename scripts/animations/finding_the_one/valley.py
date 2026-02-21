@@ -26,7 +26,8 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
         t = (f - start) / 40.0
         wx = seeker_world_positions.get(f, 0)
         base_y = lerp(-1.8, 0, ease_in_out_cubic(min(t * 2, 1.0)))
-        y = base_y + 0.1 * math.sin(f * 0.05)
+        wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
+        y = base_y + wander * ease_in_out_cubic(t)
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 
@@ -35,10 +36,10 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
 
     apply_pulse(seeker, start, phase1_end, period=60, amplitude=0.02)
 
-    # Middle: nearly stopped, dimmest
+    # Middle: wandering continuously
     for f in range(phase1_end, phase2_end + 1):
         wx = seeker_world_positions.get(f, 0)
-        y = 0.05 * math.sin(f * 0.03)
+        y = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
     apply_pulse(seeker, phase1_end, phase2_end, period=70, amplitude=0.015)
@@ -50,7 +51,7 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
         one_sx = lerp(12, 9, ease_in_out_cubic(t))
         kf_loc(the_one, wx + one_sx, lerp(0.5, 0.3, t), f)
         kf_emission_strength(one_mat, lerp(0.3, 1.2, ease_in_out_cubic(t)), f)
-        y = 0.05 * math.sin(f * 0.03)
+        y = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 
@@ -61,7 +62,9 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
         one_sx = lerp(9, 8, ease_in_out_cubic(t))
         kf_loc(the_one, wx + one_sx, lerp(0.3, 0.2, t), f)
         kf_emission_strength(one_mat, lerp(1.2, 2.0, ease_in_out_cubic(t)), f)
-        y = lerp(0, 0.1, ease_in_out_cubic(t))
+        base_y = lerp(0, 0.1, ease_in_out_cubic(t))
+        wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
+        y = base_y + wander
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 

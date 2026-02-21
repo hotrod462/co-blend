@@ -53,9 +53,14 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         kf_emission_strength(one_mat, 2.0, f)
         
         if t < 0.5:
-            y = lerp(0.1, 0, ease_in_out_cubic(t * 2))
+            base_y = lerp(0.1, 0, ease_in_out_cubic(t * 2))
         else:
-            y = lerp(0, 0.05, ease_in_out_cubic((t - 0.5) * 2))
+            base_y = lerp(0, 0.05, ease_in_out_cubic((t - 0.5) * 2))
+            
+        # Continued oscillation dying out over this beat (synced with valley)
+        wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
+        y = base_y + wander * (1.0 - ease_in_out_cubic(t))
+        
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
         

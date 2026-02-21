@@ -125,10 +125,10 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
     for f in range(orbit_start, orbit_end + 1):
         t = (f - orbit_start) / (orbit_end - orbit_start)
         wx = seeker_world_positions.get(f, 0)
-        cx = wx + 0.5
+        cx = wx + lerp(1.25, 0.5, ease_in_out_cubic(t))
         cy = 0
 
-        radius = lerp(2.5, 1.2, ease_in_out_cubic(t)) # Starts at 2.5 now
+        radius = lerp(1.25, 1.2, ease_in_out_cubic(t)) # Starts at 1.25 to match initial distance
         angle = t * 3.0 * math.pi
 
         kf_loc(right_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
@@ -172,16 +172,17 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
             seeker_y = cy + radius * math.sin(angle + math.pi)
         elif t < 0.8:
             lt = (t - 0.5) / 0.3
-            gap = lerp(0.4, 0.2, ease_in_out_cubic(lt))
-            tri_x = wx + gap / 2 + 0.35
+            target_tri_x = wx - 0.2
+            target_seeker_x = wx + 0.2
+            tri_x = lerp(wx + 0.065, target_tri_x, ease_in_out_cubic(lt))
+            seeker_x = lerp(wx + 0.535, target_seeker_x, ease_in_out_cubic(lt))
             tri_y = 0
-            seeker_x = wx - gap / 2 + 0.35
             seeker_y = 0
         else:
             lt = (t - 0.8) / 0.2
-            tri_x = wx + 0.55 + 0.5 * ease_in_out_cubic(lt)
+            tri_x = wx - 0.2 - 0.85 * ease_in_out_cubic(lt)
             tri_y = 0.3 * ease_in_out_cubic(lt)
-            seeker_x = wx
+            seeker_x = lerp(wx + 0.2, wx, ease_in_out_cubic(lt))
             seeker_y = -0.15 * ease_in_out_cubic(lt)
             tri_spin += 0.08 * lt
 
@@ -217,13 +218,11 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         
         # Triangle Exit: Sporadic comeback logic
         # base drift: use pow(t, 2.5) for slower early drift
-        base_offset = lerp(1.0, -15.0, math.pow(t, 2.5))
+        base_offset = lerp(-1.05, -15.0, math.pow(t, 2.5))
         
         # Surges: Fewer but more intense peaks
-        # Surge when sin is positive
-        surge_phase = t * 3 * math.pi
-        surge = 4.0 * (1.0 - t) * math.sin(surge_phase)
-        if surge < 0: surge = 0
+        surge_phase = t * 3.5 * math.pi
+        surge = 6.0 * (1.0 - t) * math.sin(surge_phase)
         
         offset = base_offset + surge
         
