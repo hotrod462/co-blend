@@ -244,54 +244,68 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         kf_emission_strength(seeker_mat, pulse_em, f)
         kf_emission_strength(right_tri_mat, pulse_em, f)
 
-    # --- RECOIL & SPORADIC EXIT (1120–1350) ---
+    # --- RECOIL & SPORADIC EXIT (1120–1520) ---
+    # Extended to 400 frames (~13s) for prolonged emotional incompatibility.
     recoil_start = 1120
-    recoil_end = 1350
-    
+    recoil_end = 1520
+
     for f in range(recoil_start, recoil_end + 1):
         t = (f - recoil_start) / (recoil_end - recoil_start)
         wx = seeker_world_positions.get(f, 0)
-        
-        if t < 0.3:
-             rt = t / 0.3
+
+        if t < 0.2:
+             rt = t / 0.2
              recoil_y = lerp(-0.15, 1.2, ease_out_bounce(rt))
              seeker_y_out[f] = recoil_y
              kf_loc(seeker, wx, recoil_y, f)
              seeker_spin = lerp(seeker_spin, 0, rt)
         else:
-             # Stunned/Processing wobble (Y=1.2 ± noise)
-             lt = (t - 0.3) / 0.7
-             y = 1.2 + 0.05 * math.sin(f * 0.2) * (1.0 - lt)
+             # Stunned/Processing wobble — holds near Y=1.2 for a long time
+             lt = (t - 0.2) / 0.8
+             y = 1.2 + 0.04 * math.sin(f * 0.2) * (1.0 - lt)
              seeker_y_out[f] = y
              kf_loc(seeker, wx, y, f)
              kf_rot_z(seeker, 0, f)
-        
-        # Triangle Exit: Sporadic comeback logic
-        # Even more lingering offset (0.6 power)
-        base_offset = lerp(-1.05, -12.0, math.pow(t, 0.6))
-        
-        # Surges: Two aggressive hesitations — increased amplitude to bring it close
-        surge_phase = t * 4.5 * math.pi
-        surge = 9.0 * (1.0 - t) * math.sin(surge_phase)
-        
-        offset = base_offset + surge
-        
-        # Y Bobbing during surge: bobs up when surging back, comes close to Seeker at Y=1.2
-        tri_y = 0.5 - t * 2.0 + 1.2 * (surge / 4.0)
-        
+
+        # Triangle Exit: 2-phase departure so both surges stay visible on-screen.
+        #
+        # Phase 1 (t<0.15): quick ease to -4.5 so there's clear separation from seeker
+        #   before the first surge brings it back dramatically.
+        # Phase 2 (t>=0.15): very slow t^2.5 drift to -14 — lingers in view for most
+        #   of the exit, only accelerating off-screen in the final quarter.
+        if t < 0.15:
+            base_offset = lerp(-1.05, -4.5, ease_in_out_cubic(t / 0.15))
+        else:
+            drift_t = (t - 0.15) / 0.85
+            base_offset = lerp(-4.5, -14.0, math.pow(drift_t, 2.5))
+
+        # Surges: sin(t*4π) gives positive peaks at t≈0.125 and t≈0.625.
+        # Both peaks land while the base is still within the visible area.
+        # Amplitude decays gently — second surge still feels like a real comeback.
+        surge_raw = 5.0 * math.pow(1.0 - t, 0.5) * math.sin(t * 4 * math.pi)
+
+        # Soft clamp: can come within 0.8 units of seeker but not cross it.
+        offset = min(base_offset + surge_raw, -0.8)
+
+        # Y: only lifts toward seeker's Y=1.2 during positive surge peaks.
+        base_tri_y = 0.4 - t * 1.6
+        surge_y_pull = 0.9 * max(surge_raw / 5.0, 0.0)
+        tri_y = base_tri_y + surge_y_pull
+
         kf_loc(right_tri, wx + offset, tri_y, f)
-        tri_spin += 0.05 * (1.0 - t)
+        tri_spin += 0.04 * (1.0 - t)
         kf_rot_z(right_tri, tri_spin, f)
-        
-        if t > 0.7:
-             kf_emission_strength(right_tri_mat, lerp(2.0, 0.0, (t-0.7)/0.3), f)
+
+        # Stays fully bright until t=0.75, then fades — mirrors the emotional weight.
+        if t > 0.75:
+             kf_emission_strength(right_tri_mat, lerp(2.0, 0.0, (t - 0.75) / 0.25), f)
         else:
              kf_emission_strength(right_tri_mat, 2.0, f)
-             
-    # Ghost: Right-angle triangle lingers as a faint ghost at left edge
-    # Fades from emission 0.12 → 0 over ~400 frames (visual metaphor: past fading)
-    ghost_start = 1351
-    ghost_end = 1750
+
+    # Ghost: Right-angle triangle lingers as a faint ghost at left edge.
+    # Fades 0.12 → 0 over 400 frames (past fading from memory).
+    ghost_start = 1521
+    ghost_end = 1921
     for f in range(ghost_start, ghost_end + 1):
         gt = (f - ghost_start) / (ghost_end - ghost_start)
         wx = seeker_world_positions.get(f, 0)
@@ -302,13 +316,13 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
     kf_emission_strength(right_tri_mat, 0.0, ghost_end + 1)
 
 
-    # ── Beat 1.5: The Gap / Searching Again (1350–1500) ──
+    # ── Beat 1.5: The Gap / Searching Again (1520–1670) ──
     # Post-rejection stumble: decaying wobble → pause → cautious resumption.
     # Lonelier feel: slower pulse, reduced Y-amplitude, a moment of stillness.
-    gap_start = 1350
-    gap_end = 1500
-    pause_start = 1400  # Seeker stops to "think"
-    pause_end = 1425
+    gap_start = 1520
+    gap_end = 1670
+    pause_start = 1570  # Seeker stops to "think"
+    pause_end = 1595
 
     for f in range(gap_start, gap_end + 1):
         wx = seeker_world_positions.get(f, 0)

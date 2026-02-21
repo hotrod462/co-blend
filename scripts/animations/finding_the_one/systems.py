@@ -28,47 +28,49 @@ def build_scroll_schedule():
     speed_keyframes = [
         # Prologue & Start (1-330)
         (1,    0.0), (230, 0.0), (260, 0.03), (300, 0.03),
-        (330,  0.03), 
-        (630,  0.03), 
-        (750,  0.02),  
-        (880,  0.01),  
-        (1000, 0.01),  
-        (1100, 0.015), 
-        (1300, 0.03),  # Back to normal speed (Recovery)
-        
-        # New Gap: Wandering Alone (1300-1500)
-        (1400, 0.02),  # Gap: lonelier, slower
-        (1500, 0.03),  # Entering Act 2
-        
-        # Act 2 (1500-2500): Isosceles encounter starts
-        (1550, 0.03),  # Starts slowing 50f in
-        (1700, 0.02), 
-        (1850, 0.01),  # Crawling approach
-        (2000, 0.005), # Near standstill for orbit
-        (2150, 0.015), # Leaving
-        (2300, 0.02),  # Slowsad walk
-        (2400, 0.025), # Alone again
-        (2500, 0.025), # End of Act 2
-        
-        # Valley (2500-2650)
-        (2550, 0.012), 
-        (2600, 0.008),
-        (2650, 0.020), # Hope returns
-        
-        # Act 3 (2650-3350)
-        (2700, 0.025), 
-        (2850, 0.01), 
-        (2950, 0.005), # Slow orbit/sync
-        (3100, 0.005), 
-        (3350, 0.02),  # The Click
-        
-        # Act 4 (3350-3850)
-        (3450, 0.03), 
-        (3550, 0.06), 
-        (3650, 0.08),
-        (3700, 0.10), 
-        (3800, 0.05), 
-        (3850, 0.0),
+        (330,  0.03),
+        (630,  0.03),
+        (750,  0.02),
+        (880,  0.01),
+        (1000, 0.01),
+        (1100, 0.010), # Slow through right-angle exit
+        (1300, 0.010), # Keep slow — exit runs to 1520, world shouldn't rush away
+        (1430, 0.010), # Midway through exit
+        (1520, 0.012), # Exit ends, gap begins
+
+        # Gap: Wandering Alone (1520-1670)
+        (1595, 0.015),
+        (1670, 0.030), # Entering Act 2
+
+        # Act 2 (1670-2790)
+        (1720, 0.030),
+        (1870, 0.020),
+        (2020, 0.010), # Crawling approach
+        (2170, 0.005), # Near standstill for orbit
+        (2320, 0.012), # Leaving (bonk)
+        (2470, 0.010), # Iso exit — keep slow, world doesn't pull away
+        (2600, 0.010), # Deep in iso exit, still slow
+        (2790, 0.012), # Iso exit ends
+
+        # Valley (2790-2940)
+        (2840, 0.012),
+        (2890, 0.008),
+        (2940, 0.020), # Hope returns
+
+        # Act 3 (2940-3640)
+        (2990, 0.025),
+        (3140, 0.010),
+        (3240, 0.005), # Slow orbit/sync
+        (3390, 0.005),
+        (3640, 0.020), # The Click
+
+        # Act 4 (3640-4140)
+        (3740, 0.030),
+        (3840, 0.060),
+        (3940, 0.080),
+        (3990, 0.100),
+        (4090, 0.050),
+        (4140, 0.000),
     ]
 
     speeds = {}
@@ -193,15 +195,15 @@ def apply_ortho_scale_shifts(camera, scale_keyframes):
     # Updated keyframes for new timeline
     # 2460 -> 3250 Act 3 Ends
     new_kf = [
-        (1, 20),
-        (880, 18),   # Act 1 Encounter
-        (1300, 20),  # Act 1 End / Recovery
-        (1500, 20),  # Gap (Wandering Normal)
-        (1950, 18),  # Act 2 Encounter (midway)
-        (2500, 22),  # Lonely/Valley
-        (3350, 16),  # The Click (Act 3 End)
-        (3550, 20),
-        (3850, 24)
+        (1,    20),
+        (880,  18),    # Act 1 Encounter
+        (1300, 20),    # Act 1 End / Recovery
+        (1670, 20),    # Gap end / Act 2 Start (+170)
+        (2120, 18),    # Act 2 Encounter (orbit midpoint, +170)
+        (2790, 22),    # Lonely/Valley (+290)
+        (3640, 16),    # The Click (Act 3 End, +290)
+        (3840, 20),    # (+290)
+        (4140, 24),    # End (+290)
     ]
     
     for i in range(len(new_kf) - 1):

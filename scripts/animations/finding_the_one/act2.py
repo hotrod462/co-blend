@@ -28,8 +28,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     # 450 frames. Long, drawn out approach with pauses.
     random.seed(222)
     
-    entry_start = 1500
-    entry_end = 1950
+    entry_start = 1670
+    entry_end = 2120
     
     for f in range(entry_start, entry_end + 1):
         t = (f - entry_start) / (entry_end - entry_start)
@@ -59,8 +59,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         # Seeker Pop Notice around frame 1600 (t≈0.22)
         seeker_pop_scale = 1.0
         seeker_pop_em = 2.0
-        if 1600 <= f <= 1680:
-            pt = (f - 1600) / 80.0
+        if 1770 <= f <= 1850:
+            pt = (f - 1770) / 80.0
             seeker_pop_scale = 1.0 + 0.3 * math.sin(pt * math.pi)
             seeker_pop_em = 2.0 + 1.2 * math.sin(pt * math.pi)
         
@@ -96,8 +96,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     apply_pulse(seeker, entry_start, entry_end, period=45, amplitude=0.03)
 
     # ── Beat 2.2: Stiff Interaction (1850–2120) ──
-    orbit_start = 1950
-    orbit_end = 2100
+    orbit_start = 2120
+    orbit_end = 2270
     
     for f in range(orbit_start, orbit_end + 1):
         t = (f - orbit_start) / (orbit_end - orbit_start)
@@ -144,8 +144,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     # Orbit ended at: angle=2.5*pi, radius=0.8, cx=wx+0
     # cos(2.5*pi)=0, sin(2.5*pi)=-1
     # So iso was at (cx, -0.8), seeker at (cx, +0.8)
-    tease_start = 2100
-    tease_end = 2150
+    tease_start = 2270
+    tease_end = 2320
     
     for f in range(tease_start, tease_end + 1):
         t = (f - tease_start) / (tease_end - tease_start)
@@ -196,8 +196,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     apply_pulse(seeker, tease_start, tease_end, period=30, amplitude=0.04)
 
     # --- BONK & RECOIL (2150–2220) ---
-    bonk_start = 2150
-    bonk_end = 2180
+    bonk_start = 2320
+    bonk_end = 2350
     
     # End of Tease positions for continuity:
     # gap = 0.15 at t=1.0 of tease
@@ -225,8 +225,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot + rot_offset, f)
         
-    post_start = 2180
-    post_end = 2220
+    post_start = 2350
+    post_end = 2390
     iso_rot_base = iso_rot + rot_offset
     
     for f in range(post_start, post_end + 1):
@@ -258,10 +258,10 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(seeker, seeker_x, seeker_y, f)
         kf_rot_z(seeker, seeker_rot, f)
 
-    exit_start = 2220
-    exit_end = 2500
+    exit_start = 2390
+    exit_end = 2790   # Extended: 400 frames (~13s), was 280f
     last_rot = cur_rot
-    final_radius = radius # explicit anchor from previous block
+    final_radius = radius  # explicit anchor from previous block
     
     for f in range(exit_start, exit_end + 1):
         t = (f - exit_start) / (exit_end - exit_start)
@@ -286,37 +286,57 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         seeker_em = lerp(2.0, 0.4, t)
         kf_emission_strength(seeker_mat, seeker_em, f)
         
-        # Triangle Exit: Reluctant drift
-        # Use a gentler exponent (0.9 instead of 1.2) to keep it visible longer
-        base_offset = lerp(-final_radius, -25.0, math.pow(t, 0.9))
-        
-        # Surge as an additive wobble that decays, starting at 0 to avoid teleport
-        surge = 4.0 * (1.0 - t) * math.sin(t * 8 * math.pi)
-        offset = base_offset + surge
-        
-        # Bouncing exit
-        tri_y = tri_rel_y * (1.0 - t) + 1.2 * math.sin(t * 8 * math.pi)
+        # Triangle Exit: 2-phase X departure + diagonal bottom-left Y drift.
+        #
+        # X — Phase 1 (t<0.15): quick ease to -5.5 so the first surge is dramatic.
+        # X — Phase 2 (t>=0.15): very slow t^2.5 drift to -14 (mostly on-screen).
+        if t < 0.15:
+            base_offset = lerp(-final_radius, -5.5, ease_in_out_cubic(t / 0.15))
+        else:
+            drift_t = (t - 0.15) / 0.85
+            base_offset = lerp(-5.5, -14.0, math.pow(drift_t, 2.5))
+
+        # Surges: sin(t*4π) — peaks at t≈0.125, t≈0.625 (both on-screen).
+        # Neutral amplitude — iso doesn't desperately chase the seeker.
+        surge_raw = 4.5 * math.pow(1.0 - t, 0.5) * math.sin(t * 4 * math.pi)
+
+        # Soft clamp: iso stays left of screen centre, neutral.
+        offset = min(base_offset + surge_raw, -1.5)
+
+        # Y — Organic diagonal drift toward bottom-left corner of screen.
+        # drift_down: accelerates downward (t^2 so it stays near 0 early, falls late).
+        drift_down = lerp(0.0, -9.0, math.pow(t, 2.0))
+
+        # Organic noise: 3 interference sine waves at different frequencies/phases.
+        # Ramps in smoothly (× ease-in during first 30%) and decays toward exit.
+        noise_ramp = ease_in_out_cubic(min(t / 0.3, 1.0)) * (1.0 - t * 0.5)
+        noise_y = (0.6 * math.sin(t * 3.7 * math.pi + 0.5)
+                   + 0.35 * math.sin(t * 8.1 * math.pi + 1.3)
+                   + 0.2 * math.cos(t * 5.4 * math.pi + 0.8))
+
+        tri_y = drift_down + noise_y * noise_ramp
         kf_loc(iso_tri, wx + offset, tri_y, f)
-        
+
         snaps = math.floor(t * 8)
         kf_rot_z(iso_tri, last_rot + snaps * (math.pi / 4), f)
 
+        # Stays fully bright until t=0.8, then fades cleanly.
         if t > 0.8:
-            kf_emission_strength(iso_tri_mat, lerp(2.0, 0.0, (t-0.8)/0.2), f)
+            kf_emission_strength(iso_tri_mat, lerp(2.0, 0.0, (t - 0.8) / 0.2), f)
         else:
             kf_emission_strength(iso_tri_mat, 2.0, f)
 
-    # Ghost: Isosceles lingers as faint ghost at left edge
-    # Fades 0.12→0 over ~150 frames, disappears right as The One appears
-    ghost_start = 2501
-    ghost_end = 2650  # Clean handoff: ghost fades as The One enters
+    # Ghost: Isosceles lingers as faint ghost at left edge.
+    # Fades 0.12→0 over 149 frames, disappears as The One arrives.
+    ghost_start = 2791
+    ghost_end = 2940   # Clean handoff: ghost fades as The One enters
     for f in range(ghost_start, ghost_end + 1):
         gt = (f - ghost_start) / (ghost_end - ghost_start)
         wx = seeker_world_positions.get(f, 0)
-        kf_loc(iso_tri, wx - 11, -0.5, f)
+        kf_loc(iso_tri, wx - 11, -4.0, f)
         kf_emission_strength(iso_tri_mat, lerp(0.12, 0.0, ease_in_out_cubic(gt)), f)
     kf_loc(iso_tri, -60, 10, ghost_end + 1)
     kf_emission_strength(iso_tri_mat, 0.0, ghost_end + 1)
     
     apply_pulse(seeker, exit_start, exit_end, period=55, amplitude=0.02)
-    apply_sigh(seeker, 2300, 2350, depth=0.06)
+    apply_sigh(seeker, 2570, 2630, depth=0.06)
