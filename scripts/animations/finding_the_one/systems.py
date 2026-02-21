@@ -29,47 +29,47 @@ def build_scroll_schedule():
         # Prologue & Start (1-330)
         (1,    0.0), (270, 0.0), (300, 0.03), (330, 0.03),
         
-        # Act 1 (330-1200): Encounter slows down significantly
+        # Act 1 (330-1300): Encounter slows down significantly
         (630,  0.03), 
         (750,  0.02),  
         (880,  0.01),  
         (1000, 0.01),  
         (1100, 0.015), 
-        (1200, 0.03),  # Back to normal speed (Recovery)
+        (1300, 0.03),  # Back to normal speed (Recovery)
         
-        # New Gap: Wandering Alone (1200-1400)
-        (1300, 0.03),
-        (1400, 0.03),  # Entering Act 2
+        # New Gap: Wandering Alone (1300-1500)
+        (1400, 0.03),
+        (1500, 0.03),  # Entering Act 2
         
-        # Act 2 (1400-2400): Isosceles encounter starts
-        (1450, 0.03),  # Starts slowing 50f in
-        (1600, 0.02), 
-        (1750, 0.01),  # Crawling approach
-        (1900, 0.005), # Near standstill for orbit
-        (2050, 0.015), # Leaving
-        (2200, 0.02),  # Slowsad walk
-        (2300, 0.025), # Alone again
-        (2400, 0.025), # End of Act 2
+        # Act 2 (1500-2500): Isosceles encounter starts
+        (1550, 0.03),  # Starts slowing 50f in
+        (1700, 0.02), 
+        (1850, 0.01),  # Crawling approach
+        (2000, 0.005), # Near standstill for orbit
+        (2150, 0.015), # Leaving
+        (2300, 0.02),  # Slowsad walk
+        (2400, 0.025), # Alone again
+        (2500, 0.025), # End of Act 2
         
-        # Valley (2400-2550)
-        (2450, 0.012), 
-        (2500, 0.008),
-        (2550, 0.020), # Hope returns
+        # Valley (2500-2650)
+        (2550, 0.012), 
+        (2600, 0.008),
+        (2650, 0.020), # Hope returns
         
-        # Act 3 (2550-3250)
-        (2600, 0.025), 
-        (2750, 0.01), 
-        (2850, 0.005), # Slow orbit/sync
-        (3000, 0.005), 
-        (3250, 0.02),  # The Click
+        # Act 3 (2650-3350)
+        (2700, 0.025), 
+        (2850, 0.01), 
+        (2950, 0.005), # Slow orbit/sync
+        (3100, 0.005), 
+        (3350, 0.02),  # The Click
         
-        # Act 4 (3250-3750)
-        (3350, 0.03), 
-        (3450, 0.06), 
-        (3550, 0.08),
-        (3600, 0.10), 
-        (3700, 0.05), 
-        (3750, 0.0),
+        # Act 4 (3350-3850)
+        (3450, 0.03), 
+        (3550, 0.06), 
+        (3650, 0.08),
+        (3700, 0.10), 
+        (3800, 0.05), 
+        (3850, 0.0),
     ]
 
     speeds = {}
@@ -196,13 +196,13 @@ def apply_ortho_scale_shifts(camera, scale_keyframes):
     new_kf = [
         (1, 20),
         (880, 18),   # Act 1 Encounter
-        (1200, 20),  # Act 1 End / Recovery
-        (1400, 20),  # Gap (Wandering Normal)
-        (1850, 18),  # Act 2 Encounter (midway)
-        (2400, 22),  # Lonely/Valley
-        (3250, 16),  # The Click (Act 3 End)
-        (3450, 20),
-        (3750, 24)
+        (1300, 20),  # Act 1 End / Recovery
+        (1500, 20),  # Gap (Wandering Normal)
+        (1950, 18),  # Act 2 Encounter (midway)
+        (2500, 22),  # Lonely/Valley
+        (3350, 16),  # The Click (Act 3 End)
+        (3550, 20),
+        (3850, 24)
     ]
     
     for i in range(len(new_kf) - 1):

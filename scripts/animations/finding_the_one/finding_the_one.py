@@ -206,17 +206,17 @@ ortho_keyframes = [
     (630,  ORTHO_NORMAL),
     (680,  ORTHO_ENCOUNTER),    # Encounter 1
     (870,  ORTHO_NORMAL),       # Recovery
-    (1070, ORTHO_ENCOUNTER),    # Encounter 2
-    (1350, ORTHO_NORMAL),       # Separation
-    (1690, ORTHO_LONELY),       # Valley — Seeker feels small
-    (1800, ORTHO_NORMAL),       # Discovery begins
-    (1950, ORTHO_CLICK),        # Mutual recognition — intimate
-    (2250, ORTHO_CLICK),        # During orbit
-    (2460, ORTHO_NORMAL),       # Union
-    (2670, ORTHO_NORMAL),       # Accelerating
-    (2850, ORTHO_WIDE),         # World expanding
-    (3100, ORTHO_WIDE),         # Hold
-    (3150, ORTHO_WIDE),         # End
+    (1170, ORTHO_ENCOUNTER),    # Encounter 2
+    (1450, ORTHO_NORMAL),       # Separation
+    (1790, ORTHO_LONELY),       # Valley — Seeker feels small
+    (1900, ORTHO_NORMAL),       # Discovery begins
+    (2050, ORTHO_CLICK),        # Mutual recognition — intimate
+    (2350, ORTHO_CLICK),        # During orbit
+    (2560, ORTHO_NORMAL),       # Union
+    (2770, ORTHO_NORMAL),       # Accelerating
+    (2950, ORTHO_WIDE),         # World expanding
+    (3200, ORTHO_WIDE),         # Hold
+    (3250, ORTHO_WIDE),         # End
 ]
 apply_ortho_scale_shifts(camera, ortho_keyframes)
 

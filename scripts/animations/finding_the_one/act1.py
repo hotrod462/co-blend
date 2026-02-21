@@ -99,13 +99,20 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         if t > 0.8: final_drift_y = lerp(raw_drift_y, 0.0, (t-0.8)/0.2)
         else: final_drift_y = raw_drift_y
 
-        # Rotation Logic (Excitement from 780, ~t=0.47)
-        if t < 0.47:
+        # Rotation Logic
+        if t < 0.40:
+            # Calm approach
             tri_rot = t * 0.8 * math.pi
             seeker_rot = 0
+        elif t < 0.53:
+            # Triangle excitement burst — fast spin about its own axis
+            burst_t = (t - 0.40) / 0.13
+            tri_rot = (0.40 * 0.8 * math.pi) + burst_t * 4.0 * math.pi
+            seeker_rot = 0  # Seeker hasn't noticed yet
         else:
-            excitement_t = (t - 0.47) / 0.53
-            tri_rot = (0.47 * 0.8 * math.pi) + excitement_t * 3.0 * math.pi
+            # Mutual excitement — seeker reciprocates
+            excitement_t = (t - 0.53) / 0.47
+            tri_rot = (0.40 * 0.8 * math.pi) + 4.0 * math.pi + excitement_t * 2.0 * math.pi
             seeker_rot = excitement_t * 2.0 * math.pi
 
         kf_loc(right_tri, wx + tri_screen_x, final_drift_y, f)
@@ -118,7 +125,7 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
 
     # --- MUTUAL ORBIT (950–1080) ---
     seeker_spin = 2.0 * math.pi
-    tri_spin = (0.47 * 0.8 * math.pi) + 3.0 * math.pi
+    tri_spin = (0.40 * 0.8 * math.pi) + 4.0 * math.pi + 2.0 * math.pi
     orbit_start = 950
     orbit_end = 1080
     
@@ -197,9 +204,9 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         kf_emission_strength(seeker_mat, pulse_em, f)
         kf_emission_strength(right_tri_mat, pulse_em, f)
 
-    # --- RECOIL & SPORADIC EXIT (1120–1250) ---
+    # --- RECOIL & SPORADIC EXIT (1120–1350) ---
     recoil_start = 1120
-    recoil_end = 1250 
+    recoil_end = 1350
     
     for f in range(recoil_start, recoil_end + 1):
         t = (f - recoil_start) / (recoil_end - recoil_start)
@@ -217,12 +224,12 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
              kf_rot_z(seeker, 0, f)
         
         # Triangle Exit: Sporadic comeback logic
-        # base drift: use pow(t, 2.5) for slower early drift
-        base_offset = lerp(-1.05, -15.0, math.pow(t, 2.5))
+        # base drift: slower power curve for lingering
+        base_offset = lerp(-1.05, -12.0, math.pow(t, 3.0))
         
-        # Surges: Fewer but more intense peaks
-        surge_phase = t * 3.5 * math.pi
-        surge = 6.0 * (1.0 - t) * math.sin(surge_phase)
+        # Surges: Two clear hesitations
+        surge_phase = t * 4.5 * math.pi
+        surge = 8.0 * (1.0 - t) * math.sin(surge_phase)
         
         offset = base_offset + surge
         
@@ -239,14 +246,14 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
              kf_emission_strength(right_tri_mat, 2.0, f)
              
     # Park
-    kf_loc(right_tri, -60, 10, 1251)
+    kf_loc(right_tri, -60, 10, 1351)
 
 
-    # ── Beat 1.5: The Gap / Searching Again (1250–1400) ──
+    # ── Beat 1.5: The Gap / Searching Again (1350–1500) ──
     # Seeker is alone, bouncing around.
     # Start at Y=1.2. End at Y=0 (Act 2 start).
-    gap_start = 1250
-    gap_end = 1400
+    gap_start = 1350
+    gap_end = 1500
     
     # Waypoints for wandering
     # 1.2 -> 0.0 -> -0.5 -> 0.0

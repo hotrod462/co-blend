@@ -28,8 +28,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     # 450 frames. Long, drawn out approach with pauses.
     random.seed(222)
     
-    entry_start = 1400
-    entry_end = 1850
+    entry_start = 1500
+    entry_end = 1950
     
     for f in range(entry_start, entry_end + 1):
         t = (f - entry_start) / (entry_end - entry_start)
@@ -55,8 +55,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         # Seeker Pop Notice around frame 1500 (t≈0.22)
         seeker_pop_scale = 1.0
         seeker_pop_em = 2.0
-        if 1500 <= f <= 1580:
-            pt = (f - 1500) / 80.0
+        if 1600 <= f <= 1680:
+            pt = (f - 1600) / 80.0
             seeker_pop_scale = 1.0 + 0.3 * math.sin(pt * math.pi)
             seeker_pop_em = 2.0 + 1.2 * math.sin(pt * math.pi)
         
@@ -91,15 +91,16 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     apply_pulse(seeker, entry_start, entry_end, period=45, amplitude=0.03)
 
     # ── Beat 2.2: Stiff Interaction (1850–2120) ──
-    orbit_start = 1850
-    orbit_end = 2000
+    orbit_start = 1950
+    orbit_end = 2100
     
     for f in range(orbit_start, orbit_end + 1):
         t = (f - orbit_start) / (orbit_end - orbit_start)
         wx = seeker_world_positions.get(f, 0)
-        cx, cy = wx, 0
+        cx = wx + lerp(1.0, 0, ease_in_out_cubic(t))
+        cy = 0
 
-        radius = lerp(2.0, 1.5, ease_in_out_cubic(t))
+        radius = lerp(1.0, 0.8, ease_in_out_cubic(t))
         angle = t * 2.5 * math.pi
 
         kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
@@ -119,9 +120,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_emission_strength(seeker_mat, pulse_em, f)
         kf_emission_strength(iso_tri_mat, pulse_em, f)
 
-    # --- TEASE (2000–2050) ---
-    tease_start = 2000
-    tease_end = 2050
+    # --- TEASE (2100–2150) ---
+    tease_start = 2100
+    tease_end = 2150
     
     for f in range(tease_start, tease_end + 1):
         t = (f - tease_start) / (tease_end - tease_start)
@@ -130,7 +131,7 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         if t < 0.4:
             lt = t / 0.4
             angle = 2.5 * math.pi + lt * 0.4 * math.pi
-            radius = lerp(1.5, 0.6, ease_in_out_cubic(lt))
+            radius = lerp(0.8, 0.6, ease_in_out_cubic(lt))
             cx = wx + 0.3
             cy = 0
             kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
@@ -157,9 +158,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
     apply_pulse(seeker, tease_start, tease_end, period=30, amplitude=0.04)
 
-    # --- BONK & RECOIL (2050–2120) ---
-    bonk_start = 2050
-    bonk_end = 2080
+    # --- BONK & RECOIL (2150–2220) ---
+    bonk_start = 2150
+    bonk_end = 2180
     
     for f in range(bonk_start, bonk_end + 1):
         t = (f - bonk_start) / (bonk_end - bonk_start)
@@ -176,8 +177,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot + rot_offset, f)
         
-    post_start = 2080
-    post_end = 2120
+    post_start = 2180
+    post_end = 2220
     iso_rot_base = iso_rot + rot_offset
     
     for f in range(post_start, post_end + 1):
@@ -200,9 +201,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(seeker, wx, seeker_y_out[f], f)
         kf_rot_z(seeker, seeker_rot, f)
 
-    # --- LEFT EXIT & FADE (2120–2400) ---
-    exit_start = 2120
-    exit_end = 2400
+    # --- LEFT EXIT & FADE (2220–2500) ---
+    exit_start = 2220
+    exit_end = 2500
     last_rot = cur_rot
     
     for f in range(exit_start, exit_end + 1):
@@ -247,7 +248,7 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
             kf_emission_strength(iso_tri_mat, 2.0, f)
 
     # Park offscreen
-    kf_loc(iso_tri, -60, 10, 2401)
+    kf_loc(iso_tri, -60, 10, 2501)
     
     apply_pulse(seeker, exit_start, exit_end, period=55, amplitude=0.02)
-    apply_sigh(seeker, 2200, 2250, depth=0.06)
+    apply_sigh(seeker, 2300, 2350, depth=0.06)
