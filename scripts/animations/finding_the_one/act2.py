@@ -102,28 +102,43 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     for f in range(orbit_start, orbit_end + 1):
         t = (f - orbit_start) / (orbit_end - orbit_start)
         wx = seeker_world_positions.get(f, 0)
+        
+        # Variable revolution speed (adds a "tense" wobble to the orbit)
+        # Total angle 2.5*pi, but non-linear
+        angle = t * 2.5 * math.pi + 0.3 * math.sin(t * 3 * math.pi)
+        
+        # Pulsing radius
+        base_radius = lerp(1.0, 0.8, ease_in_out_cubic(t))
+        radius = base_radius + 0.08 * math.sin(f * 0.2) * (1.0 - t)
+        
         cx = wx + lerp(1.0, 0, ease_in_out_cubic(t))
         cy = 0
-
-        radius = lerp(1.0, 0.8, ease_in_out_cubic(t))
-        angle = t * 2.5 * math.pi
 
         kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
         kf_loc(seeker, cx + radius * math.cos(angle + math.pi), cy + radius * math.sin(angle + math.pi), f)
         seeker_y_out[f] = cy + radius * math.sin(angle + math.pi)
 
+        # Snapped rotation remains but speed varies with the orbit angle
         iso_rot = math.floor(angle / (math.pi/4)) * (math.pi / 4) + rigid_rot
         seeker_rot = math.floor((angle + math.pi) / (math.pi/4)) * (math.pi / 4)
         
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot, f)
         
-        # Emission Pulse
-        pulse_period = lerp(50, 20, t)
+        # Emission Pulse: Speeds up as they interact
+        pulse_period = lerp(50, 15, t)
         phase = (f - orbit_start) / pulse_period * 2 * math.pi
         pulse_em = 2.0 + 0.6 * (0.5 + 0.5 * math.sin(phase))
         kf_emission_strength(seeker_mat, pulse_em, f)
         kf_emission_strength(iso_tri_mat, pulse_em, f)
+        
+        # For continuity capture
+        if f == orbit_end:
+            final_orbit_angle = angle
+            final_orbit_radius = radius
+            final_orbit_cx_offset = cx - wx
+            final_iso_rot = iso_rot
+            final_seeker_rot = seeker_rot
 
     # --- TEASE (2100–2150) ---
     # Orbit ended at: angle=2.5*pi, radius=0.8, cx=wx+0
@@ -138,11 +153,11 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
         if t < 0.4:
             lt = t / 0.4
-            # Continue from orbit end: cx drifts from 0 offset toward 0.2
-            cx = wx + lerp(0, 0.2, ease_in_out_cubic(lt))
+            # Continue from exact orbit end state
+            cx = wx + lerp(final_orbit_cx_offset, 0.2, ease_in_out_cubic(lt))
             cy = 0
-            angle = 2.5 * math.pi + lt * 0.4 * math.pi
-            radius = lerp(0.8, 0.6, ease_in_out_cubic(lt))
+            angle = final_orbit_angle + lt * 0.4 * math.pi
+            radius = lerp(final_orbit_radius, 0.6, ease_in_out_cubic(lt))
             kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
             kf_loc(seeker, cx + radius * math.cos(angle + math.pi), cy + radius * math.sin(angle + math.pi), f)
             seeker_y_out[f] = cy + radius * math.sin(angle + math.pi)
@@ -151,11 +166,11 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
             seeker_rot = math.floor((angle + math.pi) / (math.pi/4)) * (math.pi/4)
         else:
             lt = (t - 0.4) / 0.6
-            # Compute positions at t=0.4 boundary for continuity
-            # angle at t=0.4 was 2.5*pi + 1.0*0.4*pi = 2.9*pi
-            angle_04 = 2.9 * math.pi 
+            # Compute positions at t=0.4 boundary using the new dynamic angle legacy
+            angle_04 = final_orbit_angle + 0.4 * math.pi
             r_04 = 0.6
             cx_04 = wx + 0.2
+            
             iso_start_x = cx_04 + r_04 * math.cos(angle_04)
             iso_start_y = r_04 * math.sin(angle_04)
             seeker_start_x = cx_04 + r_04 * math.cos(angle_04 + math.pi)

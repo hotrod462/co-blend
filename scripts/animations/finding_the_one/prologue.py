@@ -29,36 +29,50 @@ def animate_prologue(parent_a, parent_a_mat, parent_b, parent_b_mat,
       - P.4b: Big square SHRINKS DOWN into the small Seeker protagonist
       - P.5: Journey begins (no parent drifting away — they become the Seeker)
     """
-    # ── Beat P.1: Immediate Motion (Frames 1–30) ─────────────
-    center_x = seeker_world_positions.get(1, 0)
+    # ── Beats P.1 - P.3: Sophisticated Spiral Birth (Frames 1–110) ──
+    # Replaced simple helpers with dynamic math for a more premium visual hook
+    angle = 0
     center_y = 0
+    for f in range(1, 111):
+        t = (f - 1) / 109.0
+        
+        # Variable revolution speed (accelerates then slows for alignment)
+        # RPM transitions from 1.0 -> 2.5 -> 0.5
+        if t < 0.7:
+            rpm = lerp(1.0, 2.5, ease_in_out_cubic(t/0.7))
+        else:
+            rpm = lerp(2.5, 0.5, ease_in_out_cubic((t-0.7)/0.3))
+        
+        angle += (rpm * 2 * math.pi / 60.0) 
+        # Add a subtle "energy surge" wobble to the angle
+        display_angle = angle + 0.1 * math.sin(f * 0.2)
+        
+        # Pulsing (non-monotonic) spiral radius
+        # Base spiral: 2.5 -> 0.3
+        base_radius = lerp(2.5, 0.3, ease_in_out_cubic(t))
+        # Add a "breathing" pulse to the radius
+        radius_pulse = 0.15 * math.sin(f * 0.15) * (1.0 - t)
+        radius = base_radius + radius_pulse
+        
+        center_x = seeker_world_positions.get(f, 0)
+        ax = center_x + radius * math.cos(display_angle)
+        ay = center_y + radius * math.sin(display_angle)
+        bx = center_x + radius * math.cos(display_angle + math.pi)
+        by = center_y + radius * math.sin(display_angle + math.pi)
+        
+        kf_loc(parent_a, ax, ay, f)
+        kf_loc(parent_b, bx, by, f)
+        
+        # Variable self-rotation (axial spin)
+        # Faster than orbit, with its own rhythmic intensity
+        axial_spin = angle * 1.5 + 0.2 * math.cos(f * 0.2)
+        kf_rot_z(parent_a, axial_spin, f)
+        kf_rot_z(parent_b, axial_spin + math.pi, f)
 
-    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
-                       frame_start=1, frame_end=30,
-                       radius_start=2.0, radius_end=2.0,
-                       rpm_start=1.0, rpm_end=1.0)
-
-    # ── Beat P.2: Spiral Inward (Frames 30–90) ───────────────
-    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
-                       frame_start=30, frame_end=60,
-                       radius_start=2.0, radius_end=1.0,
-                       rpm_start=1.0, rpm_end=1.5, start_angle=angle)
-
-    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
-                       frame_start=60, frame_end=90,
-                       radius_start=1.0, radius_end=0.5,
-                       rpm_start=1.5, rpm_end=2.0, start_angle=angle)
-
-    # ── Beat P.3: The Alignment (Frames 90–130) ──────────────
-    angle = orbit_pair(parent_a, parent_b, (center_x, center_y),
-                       frame_start=90, frame_end=110,
-                       radius_start=0.5, radius_end=0.3,
-                       rpm_start=2.0, rpm_end=0.5, start_angle=angle)
-
-    # Normalize final angle to find nearest horizontal alignment
-    # parent_a ideally ends at math.pi (left side)
+    # Normalize final angle for the alignment beat
+    angle = display_angle
     target_angle = math.pi
-    
+
     # Slide together: gap shrinks 0.3 → 0 (110–130), angle aligns to horizontal
     for f in range(110, 131):
         t = (f - 110) / 20.0

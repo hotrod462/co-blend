@@ -46,26 +46,18 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
     apply_pulse(seeker, phase1_end, phase2_end, period=70, amplitude=0.015)
 
     # THE TURN: tiny glow from far right
-    for f in range(phase2_end, phase3_end + 1):
-        t = (f - phase2_end) / 30.0
+    for f in range(phase2_end, end + 1):
+        t = (f - phase2_end) / (end - phase2_end)
         wx = seeker_world_positions.get(f, 0)
-        one_sx = lerp(12, 9, ease_in_out_cubic(t))
-        kf_loc(the_one, wx + one_sx, lerp(0.5, 0.3, ease_in_out_cubic(t)), f)
-        kf_emission_strength(one_mat, lerp(0.3, 1.2, ease_in_out_cubic(t)), f)
+        
+        # Continuous movement until the end of the Valley
+        one_sx = lerp(12, 8, ease_in_out_cubic(t))
+        one_y = lerp(0.5, 0.2, ease_in_out_cubic(t))
+        
+        kf_loc(the_one, wx + one_sx, one_y, f)
+        kf_emission_strength(one_mat, lerp(0.3, 2.0, ease_in_out_cubic(t)), f)
+        
         y = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
-        seeker_y_out[f] = y
-        kf_loc(seeker, wx, y, f)
-
-    # Glow brightens
-    for f in range(phase3_end, end + 1):
-        t = (f - phase3_end) / 20.0
-        wx = seeker_world_positions.get(f, 0)
-        one_sx = lerp(9, 8, ease_in_out_cubic(t))
-        kf_loc(the_one, wx + one_sx, lerp(0.3, 0.2, ease_in_out_cubic(t)), f)
-        kf_emission_strength(one_mat, lerp(1.2, 2.0, ease_in_out_cubic(t)), f)
-        base_y = lerp(0, 0.1, ease_in_out_cubic(t))
-        wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
-        y = base_y + wander
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
 

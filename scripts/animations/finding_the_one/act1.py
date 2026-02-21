@@ -97,8 +97,11 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         kf_scale(seeker, seeker_pop_scale, f)
         kf_emission_strength(seeker_mat, seeker_pop_em, f)
 
+        # Seeker Y: Gentle wandering instead of sitting still
         seeker_y = lerp(0.3, 0.2, ease_in_out_cubic(min(t * 1.2, 1.0)))
-        if t > 0.8: seeker_y = lerp(0.2, 0.0, (t-0.8)/0.2)
+        seeker_y += 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
+        if t > 0.8: seeker_y = lerp(seeker_y, 0.0, (t-0.8)/0.2)
+        
         if t > 0.8: final_drift_y = lerp(raw_drift_y, 0.0, (t-0.8)/0.2)
         else: final_drift_y = raw_drift_y
 
@@ -207,7 +210,8 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         elif t < 0.8:
             lt = (t - 0.5) / 0.3
             # Compute positions at t=0.5 boundary for continuity
-            angle_05 = 3.0 * math.pi + 0.5 * 0.3 * math.pi  # = 3.15*pi
+            # final_orbit_angle + 1.0 * 0.3 * pi correctly uses the actual orbital legacy
+            angle_05 = final_orbit_angle + 0.3 * math.pi
             r_05 = 0.4
             cx_05 = wx + 0.3
             tri_start_x = cx_05 + r_05 * math.cos(angle_05)
@@ -263,17 +267,17 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
              kf_rot_z(seeker, 0, f)
         
         # Triangle Exit: Sporadic comeback logic
-        # Even flatter curve to keep it centered on screen longer
-        base_offset = lerp(-1.05, -12.0, math.pow(t, 0.8))
+        # Even more lingering offset (0.6 power)
+        base_offset = lerp(-1.05, -12.0, math.pow(t, 0.6))
         
-        # Surges: Two clear hesitations — reduced amplitude and better centering
+        # Surges: Two aggressive hesitations — increased amplitude to bring it close
         surge_phase = t * 4.5 * math.pi
-        surge = 4.0 * (1.0 - t) * math.sin(surge_phase)
+        surge = 9.0 * (1.0 - t) * math.sin(surge_phase)
         
         offset = base_offset + surge
         
-        # Y Bobbing during surge: bobs up when surging back
-        tri_y = 0.5 - t * 2.0 + 0.8 * (surge / 4.0)
+        # Y Bobbing during surge: bobs up when surging back, comes close to Seeker at Y=1.2
+        tri_y = 0.5 - t * 2.0 + 1.2 * (surge / 4.0)
         
         kf_loc(right_tri, wx + offset, tri_y, f)
         tri_spin += 0.05 * (1.0 - t)
@@ -307,24 +311,27 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
     pause_end = 1425
 
     for f in range(gap_start, gap_end + 1):
-        t = (f - gap_start) / (gap_end - gap_start)
         wx = seeker_world_positions.get(f, 0)
-
-        if t < 0.3:
+        
+        if f < pause_start:
             # Stumbling away from rejection — decaying wobble
-            lt = t / 0.3
-            base_y = lerp(1.2, 0.0, ease_in_out_cubic(lt))
-            wobble = 0.4 * math.exp(-lt * 3) * math.sin(lt * 12 * math.pi)
+            t_stumble = (f - gap_start) / (pause_start - gap_start)
+            base_y = lerp(1.2, 0.0, ease_in_out_cubic(t_stumble))
+            wobble = 0.4 * math.exp(-t_stumble * 3) * math.sin(t_stumble * 12 * math.pi)
             y = base_y + wobble
-        elif pause_start <= f <= pause_end:
-            # The pause: Seeker stops Y-drift, just stands still
-            y = seeker_y_out.get(pause_start - 1, 0)
+        elif f <= pause_end:
+            # The pause: Seeker is processing. Add a subtle "processing tremble"
+            t_pause = (f - pause_start) / (pause_end - pause_start)
+            # Faint high-frequency tremble
+            y = 0.04 * math.sin(f * 1.5) * (1.0 - t_pause) 
         else:
             # Searching again — substantial wandering
-            # Add noise with higher amplitude so it's not a straight line
-            search_t = (f - pause_end) / (gap_end - pause_end)
+            # Smoothly transition from zero-ish Y back into search noise
+            t_resume = (f - pause_end) / (gap_end - pause_end)
             y = 0.5 * math.sin(f * 0.08) * math.cos(f * 0.05)
             y += 0.2 * math.sin(f * 0.2)
+            # Ease in the noise
+            y *= ease_in_out_cubic(min(t_resume * 2.0, 1.0))
 
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)
