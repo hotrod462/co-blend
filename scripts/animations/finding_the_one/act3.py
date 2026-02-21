@@ -4,9 +4,11 @@ Self-rotation syncs, orbit shifts, angle locks.
 Uses dynamic timing based on Config (extended duration).
 """
 import math
+import bpy
 from scripts.utils.animation import lerp, ease_in_out_cubic
+from scripts.utils.materials import create_emission_material, assign_material
 from scripts.animations.finding_the_one.config import (
-    ACT3_START, ACT3_END, SEEKER_SIZE, ONE_SIZE,
+    ACT3_START, ACT3_END, SEEKER_SIZE, ONE_SIZE, FRAME_START, FRAME_END,
 )
 from scripts.animations.finding_the_one.helpers import (
     kf_loc, kf_scale, kf_rot_z, kf_emission_strength,
@@ -27,43 +29,61 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
     click_duration = end - beat3_end # 250 frames
 
     # ── Beat 3.1: The One Appears Ahead (start -> +150) ──
+    # TWO-PASS: First compute Seeker Y, then use delayed buffer for The One's mirroring.
+
+    # Pass 1: Compute and store Seeker Y for all Beat 3.1 frames
+    beat31_seeker_y = {}
     for f in range(start, beat1_end + 1):
         t = (f - start) / 150.0
-        wx = seeker_world_positions.get(f, 0)
-        
-        # Multi-stage approach
-        if t < 0.33:
-            lt = t / 0.33
-            one_sx = lerp(8, 5, ease_in_out_cubic(lt))
-            one_y = lerp(0.5, 0.3, lt)
-        elif t < 0.53:
-            lt = (t - 0.33) / 0.20
-            one_sx = lerp(5, 3, ease_in_out_cubic(lt))
-            one_y = lerp(0.3, 0.2, lt)
-        elif t < 0.73:
-            lt = (t - 0.53) / 0.20
-            one_sx = lerp(3, 2.0, ease_in_out_cubic(lt))
-            one_y = lerp(0.2, 0.1, lt)
-        else:
-            lt = (t - 0.73) / 0.27
-            one_sx = lerp(2.0, 1.6, ease_in_out_cubic(lt))
-            one_y = lerp(0.1, 0.05, lt)
-            
-        kf_loc(the_one, wx + one_sx, one_y, f)
-        kf_emission_strength(one_mat, 2.0, f)
-        
         if t < 0.5:
             base_y = lerp(0.1, 0, ease_in_out_cubic(t * 2))
         else:
             base_y = lerp(0, 0.05, ease_in_out_cubic((t - 0.5) * 2))
-            
-        # Continued oscillation dying out over this beat (synced with valley)
         wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
         y = base_y + wander * (1.0 - ease_in_out_cubic(t))
-        
+        beat31_seeker_y[f] = y
         seeker_y_out[f] = y
-        kf_loc(seeker, wx, y, f)
-        
+
+    # Pass 2: Position both characters, The One mirrors Seeker Y with 10-frame delay
+    MIRROR_DELAY = 10  # frames of delay for mirroring
+
+    for f in range(start, beat1_end + 1):
+        t = (f - start) / 150.0
+        wx = seeker_world_positions.get(f, 0)
+
+        # Seeker position (already computed)
+        kf_loc(seeker, wx, beat31_seeker_y[f], f)
+
+        # --- The One: Multi-stage X approach ---
+        if t < 0.33:
+            lt = t / 0.33
+            one_sx = lerp(8, 5, ease_in_out_cubic(lt))
+            one_base_y = lerp(0.5, 0.3, lt)
+        elif t < 0.53:
+            lt = (t - 0.33) / 0.20
+            one_sx = lerp(5, 3, ease_in_out_cubic(lt))
+            one_base_y = lerp(0.3, 0.2, lt)
+        elif t < 0.73:
+            lt = (t - 0.53) / 0.20
+            one_sx = lerp(3, 2.0, ease_in_out_cubic(lt))
+            one_base_y = lerp(0.2, 0.1, lt)
+        else:
+            lt = (t - 0.73) / 0.27
+            one_sx = lerp(2.0, 1.6, ease_in_out_cubic(lt))
+            one_base_y = lerp(0.1, 0.05, lt)
+
+        # --- The One: Y mirroring ---
+        # Look up Seeker Y from MIRROR_DELAY frames ago
+        delayed_f = f - MIRROR_DELAY
+        delayed_seeker_y = beat31_seeker_y.get(delayed_f,
+                                               seeker_y_out.get(delayed_f, 0))
+        # Mirror blend: ramps from 0→0.7 during this beat
+        mirror_blend = ease_in_out_cubic(min(t * 1.5, 1.0)) * 0.7
+        one_y = one_base_y + delayed_seeker_y * mirror_blend
+
+        kf_loc(the_one, wx + one_sx, one_y, f)
+        kf_emission_strength(one_mat, 2.0, f)
+
     apply_pulse(seeker, start, beat1_end, period=45, amplitude=0.03)
     apply_pulse(the_one, start, beat1_end, period=45, amplitude=0.03)
 
@@ -96,7 +116,10 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
 
     # ── Beat 3.3: First Orbit (+240 -> +450) ──
     # Starts to sync rotation.
-    orbit_angle = 0.0
+    # To prevent teleport: Seeker ended at wx, The One at wx+1.2
+    # cx_offset is 0.6 -> cx = wx+0.6.
+    # To place seeker at wx, we need r=0.6 and cos(pi)=-1
+    orbit_angle = math.pi
     seeker_spin = 0.0
     one_spin = 0.0
     cx_offset_start = 0.6
@@ -113,19 +136,19 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         
         if rel_f <= 70:
             rev_speed = 1.0 / 120.0
-            r = 0.8
+            r = 0.6
         elif rel_f <= 120:
             rev_speed = 1.0 / 80.0
             st = (rel_f - 70) / 50.0
-            r = lerp(0.8, 0.7, ease_in_out_cubic(st))
+            r = lerp(0.6, 0.55, ease_in_out_cubic(st))
         elif rel_f <= 160:
             rev_speed = 1.0 / 40.0
             st = (rel_f - 120) / 40.0
-            r = lerp(0.7, 0.55, ease_in_out_cubic(st))
+            r = lerp(0.55, 0.50, ease_in_out_cubic(st))
         else: # up to 210
             rev_speed = 1.0 / 25.0
             st = (rel_f - 160) / 50.0
-            r = lerp(0.55, 0.45, ease_in_out_cubic(st))
+            r = lerp(0.50, 0.45, ease_in_out_cubic(st))
 
         orbit_angle += rev_speed * 2 * math.pi
 
@@ -154,6 +177,8 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
 
     apply_pulse(seeker, beat2_end, beat3_end, period=35, amplitude=0.04)
     apply_pulse(the_one, beat2_end, beat3_end, period=35, amplitude=0.04)
+
+
 
     # ── Beat 3.4: The Click (+450 -> End) ──
     # Extended to 250 frames for slower alignment.

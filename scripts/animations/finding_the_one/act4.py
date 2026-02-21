@@ -56,8 +56,15 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
 
         kf_loc(seeker, sx, sy, f)
         kf_loc(the_one, ox, oy, f)
-        kf_rot_z(seeker, target_rotation, f)
-        kf_rot_z(the_one, target_rotation, f)
+        # Prologue echo: one slow rotation of the combined rectangle,
+        # recalling the parent triangles' orbit from the birth sequence
+        if rel_f < 30:
+            echo_rot = target_rotation
+        else:
+            echo_t = (rel_f - 30) / 90.0
+            echo_rot = target_rotation + ease_in_out_cubic(echo_t) * 2 * math.pi
+        kf_rot_z(seeker, echo_rot, f)
+        kf_rot_z(the_one, echo_rot, f)
         seeker_y_out[f] = sy
         
         em = lerp(2.0, 3.0, ease_in_out_cubic(t))
@@ -75,8 +82,8 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
         
         kf_loc(seeker, wx + half, sway, f)
         kf_loc(the_one, wx - half, sway, f)
-        kf_rot_z(seeker, target_rotation, f)
-        kf_rot_z(the_one, target_rotation, f)
+        kf_rot_z(seeker, target_rotation + 2 * math.pi, f)
+        kf_rot_z(the_one, target_rotation + 2 * math.pi, f)
         seeker_y_out[f] = sway
         
         kf_emission_strength(seeker_mat, 3.0, f)
@@ -126,8 +133,8 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
         
         kf_loc(seeker, wx + current_half, sway, f)
         kf_loc(the_one, wx - current_half, sway, f)
-        kf_rot_z(seeker, target_rotation, f)
-        kf_rot_z(the_one, target_rotation, f)
+        kf_rot_z(seeker, target_rotation + 2 * math.pi, f)
+        kf_rot_z(the_one, target_rotation + 2 * math.pi, f)
         seeker_y_out[f] = sway
         
         # Emission intensifies to blinding white
@@ -135,9 +142,14 @@ def animate_act4(seeker, seeker_mat, the_one, one_mat,
         kf_emission_strength(seeker_mat, em, f)
         kf_emission_strength(one_mat, em, f)
         
-        # At the very end, shift color slightly to 'pure light'
-        if t > 0.8:
-            kf_emission_color(seeker_mat, 1, 1, 1, 1, f)
-            kf_emission_color(one_mat, 1, 1, 1, 1, f)
+        # Subtle warm color shift: pure white → slightly warm white
+        # Barely perceptible, but felt as warmth rather than just brightness
+        if t > 0.4:
+            warm_t = (t - 0.4) / 0.6
+            r = 1.0
+            g = lerp(1.0, 0.97, ease_in_out_cubic(warm_t))
+            b = lerp(1.0, 0.93, ease_in_out_cubic(warm_t))
+            kf_emission_color(seeker_mat, r, g, b, 1, f)
+            kf_emission_color(one_mat, r, g, b, 1, f)
 
     return trail_objects

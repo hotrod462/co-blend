@@ -38,7 +38,7 @@ def build_scroll_schedule():
         (1300, 0.03),  # Back to normal speed (Recovery)
         
         # New Gap: Wandering Alone (1300-1500)
-        (1400, 0.03),
+        (1400, 0.02),  # Gap: lonelier, slower
         (1500, 0.03),  # Entering Act 2
         
         # Act 2 (1500-2500): Isosceles encounter starts
@@ -212,3 +212,61 @@ def apply_ortho_scale_shifts(camera, scale_keyframes):
             t = (f - f0) / max(f1 - f0, 1)
             scale = lerp(s0, s1, ease_in_out_cubic(t))
             kf_ortho_scale(camera, scale, f)
+
+
+# ══════════════════════════════════════════════════════════════
+#  PARTICLE DUST (Ambient atmosphere)
+# ══════════════════════════════════════════════════════════════
+
+def animate_particle_dust(seeker_world_positions, camera):
+    """Create and animate ultra-dim particle dust across the void."""
+    import random as _rng
+    _rng.seed(42)  # Deterministic for consistency
+
+    NUM_PARTICLES = 25
+    particles = []
+
+    for i in range(NUM_PARTICLES):
+        name = f"Dust_{i}"
+        gray = _rng.uniform(0.2, 0.5)
+        mat = create_emission_material(
+            f"{name}Mat", color=(gray, gray, gray, 1), strength=0.0
+        )
+        # Tiny plane
+        bpy.ops.mesh.primitive_plane_add(size=0.06, location=(0, 0, -0.01))
+        obj = bpy.context.active_object
+        obj.name = name
+        assign_material(obj, mat)
+
+        # Random drift parameters
+        base_world_x_offset = _rng.uniform(-8, 20)  # Scattered along path
+        base_y = _rng.uniform(-4.0, 4.0)
+        drift_speed_x = _rng.uniform(-0.001, 0.001)  # Even slower drift
+        drift_speed_y = _rng.uniform(0.0005, 0.002)   # Barely moving up
+        wobble_freq = _rng.uniform(0.02, 0.05)       # Much lower frequency (slower bounce)
+        wobble_amp = _rng.uniform(0.02, 0.08)        # Much lower amplitude (less bounce)
+        particles.append((obj, mat, base_world_x_offset, base_y,
+                          drift_speed_x, drift_speed_y, wobble_freq, wobble_amp))
+
+    # Animate
+    for f in range(FRAME_START, FRAME_END + 1):
+        wx = seeker_world_positions.get(f, 0)
+
+        # Emission follows bg density curve (fade during Valley)
+        em_base = 0.08
+        for j in range(len(BG_DENSITY_CURVE) - 1):
+            f0, d0 = BG_DENSITY_CURVE[j]
+            f1, d1 = BG_DENSITY_CURVE[j + 1]
+            if f0 <= f <= f1:
+                t = (f - f0) / max(f1 - f0, 1)
+                density = lerp(d0, d1, t)
+                em_base = 0.08 * density
+                break
+
+        for obj, mat, bxo, by, dsx, dsy, wf, wa in particles:
+            x = wx + bxo + dsx * f
+            y = by + dsy * f * 0.1 + wa * math.sin(f * wf)
+            kf_loc(obj, x, y, f)
+            kf_emission_strength(mat, em_base, f)
+
+    return particles

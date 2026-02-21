@@ -121,6 +121,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_emission_strength(iso_tri_mat, pulse_em, f)
 
     # --- TEASE (2100–2150) ---
+    # Orbit ended at: angle=2.5*pi, radius=0.8, cx=wx+0
+    # cos(2.5*pi)=0, sin(2.5*pi)=-1
+    # So iso was at (cx, -0.8), seeker at (cx, +0.8)
     tease_start = 2100
     tease_end = 2150
     
@@ -130,23 +133,36 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
 
         if t < 0.4:
             lt = t / 0.4
+            # Continue from orbit end: cx drifts from 0 offset toward 0.2
+            cx = wx + lerp(0, 0.2, ease_in_out_cubic(lt))
+            cy = 0
             angle = 2.5 * math.pi + lt * 0.4 * math.pi
             radius = lerp(0.8, 0.6, ease_in_out_cubic(lt))
-            cx = wx + 0.3
-            cy = 0
             kf_loc(iso_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
-            kf_loc(seeker, cx + radius * math.cos(angle + math.pi)*0.3, cy, f)
-            seeker_y_out[f] = cy
+            kf_loc(seeker, cx + radius * math.cos(angle + math.pi), cy + radius * math.sin(angle + math.pi), f)
+            seeker_y_out[f] = cy + radius * math.sin(angle + math.pi)
             
-            cur_angle_iso = 2.5 * math.pi + lt * 0.4 * math.pi
-            iso_rot = math.floor(cur_angle_iso / (math.pi/4)) * (math.pi/4) + rigid_rot
-            seeker_rot = math.floor((cur_angle_iso + math.pi) / (math.pi/4)) * (math.pi/4)
+            iso_rot = math.floor(angle / (math.pi/4)) * (math.pi/4) + rigid_rot
+            seeker_rot = math.floor((angle + math.pi) / (math.pi/4)) * (math.pi/4)
         else:
             lt = (t - 0.4) / 0.6
+            # Compute positions at t=0.4 boundary for continuity
+            angle_04 = 2.5 * math.pi + 0.4 * 0.4 * math.pi  # = 2.66*pi
+            r_04 = 0.6
+            cx_04 = wx + 0.2
+            iso_start_x = cx_04 + r_04 * math.cos(angle_04)
+            iso_start_y = r_04 * math.sin(angle_04)
+            seeker_start_x = cx_04 + r_04 * math.cos(angle_04 + math.pi)
+            seeker_start_y = r_04 * math.sin(angle_04 + math.pi)
+            
             gap = lerp(0.6, 0.15, ease_in_out_cubic(lt))
-            kf_loc(iso_tri, wx + gap / 2 + 0.2, 0, f)
-            kf_loc(seeker, wx - gap / 2 + 0.2, 0, f)
-            seeker_y_out[f] = 0
+            target_iso_x = wx + gap / 2 + 0.2
+            target_seeker_x = wx - gap / 2 + 0.2
+            kf_loc(iso_tri, lerp(iso_start_x, target_iso_x, ease_in_out_cubic(lt)),
+                   lerp(iso_start_y, 0, ease_in_out_cubic(lt)), f)
+            kf_loc(seeker, lerp(seeker_start_x, target_seeker_x, ease_in_out_cubic(lt)),
+                   lerp(seeker_start_y, 0, ease_in_out_cubic(lt)), f)
+            seeker_y_out[f] = lerp(seeker_start_y, 0, ease_in_out_cubic(lt))
             
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot, f)
@@ -162,6 +178,11 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
     bonk_start = 2150
     bonk_end = 2180
     
+    # End of Tease positions for continuity:
+    # gap = 0.15 at t=1.0 of tease
+    # iso_x_start = wx + 0.275, iso_y_start = 0
+    # seeker_x_start = wx + 0.125, seeker_y_start = 0
+    
     for f in range(bonk_start, bonk_end + 1):
         t = (f - bonk_start) / (bonk_end - bonk_start)
         wx = seeker_world_positions.get(f, 0)
@@ -169,10 +190,16 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         rot_offset = math.floor(t * 2) * (math.pi / 4)
         bump = 0.3 * math.sin(t * math.pi)
         
-        kf_loc(iso_tri, wx + 0.5 + bump, bump * 0.5, f)
+        # Start from end of tease exactly, then apply bump
+        iso_x = wx + 0.275 + bump * 0.5
+        iso_y = bump * 0.5
+        kf_loc(iso_tri, iso_x, iso_y, f)
+        
+        # Seeker recoils backward
         recoil_y = -0.3 * ease_in_out_cubic(t)
         seeker_y_out[f] = recoil_y
-        kf_loc(seeker, wx + recoil_y * 0.2, recoil_y, f)
+        seeker_x = wx + 0.125 + recoil_y * 0.2
+        kf_loc(seeker, seeker_x, recoil_y, f)
 
         kf_rot_z(seeker, seeker_rot, f)
         kf_rot_z(iso_tri, iso_rot + rot_offset, f)
@@ -185,20 +212,29 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         t = (f - post_start) / (post_end - post_start)
         wx = seeker_world_positions.get(f, 0)
         
-        # Higher angular velocity and ends BEHIND (3.0 pi)
-        radius = lerp(1.0, 2.5, ease_in_out_cubic(t)) 
+        # Continuity: At end of bonk (t=1.0), iso was at wx + 0.275, 0 (since bump=0)
+        # We need to transition from that to the orbit path.
+        # Let's lerp the center to wx, and radius from 0.275 to 2.5
+        # The angle starts at 0 (since it was at +x, 0) and goes to 3.0*pi
+        radius = lerp(0.275, 2.5, ease_in_out_cubic(t))
         orbit_angle = t * 3.0 * math.pi
+        
+        cx = wx
+        cy = 0
         
         tri_rel_x = radius * math.cos(orbit_angle) 
         tri_rel_y = radius * math.sin(orbit_angle)
         
-        kf_loc(iso_tri, wx + tri_rel_x, tri_rel_y, f)
+        kf_loc(iso_tri, cx + tri_rel_x, cy + tri_rel_y, f)
         
         cur_rot = iso_rot_base + math.floor(t * 6) * (math.pi / 4)
         kf_rot_z(iso_tri, cur_rot, f)
 
-        seeker_y_out[f] = lerp(-0.3, -1.0, ease_in_out_cubic(t))
-        kf_loc(seeker, wx, seeker_y_out[f], f)
+        # Continuity for seeker: end of bonk seeker_y was -0.3, seeker_x was wx + 0.125 - 0.06 = wx + 0.065
+        seeker_y = lerp(-0.3, -1.0, ease_in_out_cubic(t))
+        seeker_y_out[f] = seeker_y
+        seeker_x = lerp(wx + 0.065, wx, ease_in_out_cubic(t))
+        kf_loc(seeker, seeker_x, seeker_y, f)
         kf_rot_z(seeker, seeker_rot, f)
 
     # --- LEFT EXIT & FADE (2220–2500) ---
@@ -247,8 +283,17 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         else:
             kf_emission_strength(iso_tri_mat, 2.0, f)
 
-    # Park offscreen
-    kf_loc(iso_tri, -60, 10, 2501)
+    # Ghost: Isosceles lingers as faint ghost at left edge
+    # Fades 0.12→0 over ~150 frames, disappears right as The One appears
+    ghost_start = 2501
+    ghost_end = 2650  # Clean handoff: ghost fades as The One enters
+    for f in range(ghost_start, ghost_end + 1):
+        gt = (f - ghost_start) / (ghost_end - ghost_start)
+        wx = seeker_world_positions.get(f, 0)
+        kf_loc(iso_tri, wx - 11, -0.5, f)
+        kf_emission_strength(iso_tri_mat, lerp(0.12, 0.0, ease_in_out_cubic(gt)), f)
+    kf_loc(iso_tri, -60, 10, ghost_end + 1)
+    kf_emission_strength(iso_tri_mat, 0.0, ghost_end + 1)
     
     apply_pulse(seeker, exit_start, exit_end, period=55, amplitude=0.02)
     apply_sigh(seeker, 2300, 2350, depth=0.06)

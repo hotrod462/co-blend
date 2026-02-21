@@ -63,6 +63,7 @@ from scripts.animations.finding_the_one.systems import (
     apply_seeker_emission_curve,
     animate_background_triangles,
     apply_ortho_scale_shifts,
+    animate_particle_dust,
 )
 from scripts.animations.finding_the_one.prologue import animate_prologue
 from scripts.animations.finding_the_one.act1 import animate_act1
@@ -199,6 +200,10 @@ apply_seeker_emission_curve(seeker_mat)
 animate_background_triangles(bg_triangles, seeker_world_positions)
 
 # (Trail lines removed)
+
+# Particle dust (subtle ambient atmosphere)
+print("   ✨ Particle dust...")
+animate_particle_dust(seeker_world_positions, camera)
 
 # Orthographic scale shifts for emotional moments
 ortho_keyframes = [

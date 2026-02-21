@@ -139,3 +139,6 @@ def create_background_triangles(count=BG_TRI_COUNT, seed=42):
         triangles.append((obj, mat, world_x, world_y))
 
     return triangles
+
+
+
