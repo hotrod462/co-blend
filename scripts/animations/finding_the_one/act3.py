@@ -58,7 +58,7 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         if t < 0.33:
             lt = t / 0.33
             one_sx = lerp(8, 5, ease_in_out_cubic(lt))
-            one_base_y = lerp(0.5, 0.3, lt)
+            one_base_y = lerp(0.2, 0.3, lt)
         elif t < 0.53:
             lt = (t - 0.33) / 0.20
             one_sx = lerp(5, 3, ease_in_out_cubic(lt))
@@ -161,12 +161,17 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         kf_loc(the_one, ox, oy, f)
         seeker_y_out[f] = sy
 
-        seeker_rot_speed = 0.03
-        one_rot_speed = lerp(0.02, 0.03, ease_in_out_cubic(t))
+        seeker_rot_speed = 0.12  # Faster axial spin
+        one_rot_speed = lerp(0.08, 0.12, ease_in_out_cubic(t))
         seeker_spin += seeker_rot_speed
         one_spin += one_rot_speed
-        kf_rot_z(seeker, seeker_spin, f)
-        kf_rot_z(the_one, one_spin, f)
+        
+        # Add subtle self-bobbing rotation on top of the spin
+        s_self = 0.1 * math.sin(f * 0.1)
+        o_self = 0.1 * math.sin(f * 0.1 + math.pi)
+        
+        kf_rot_z(seeker, seeker_spin + s_self, f)
+        kf_rot_z(the_one, one_spin + o_self, f)
         
         # Emission Pulse: Speeds up
         pulse_period = lerp(45, 12, t)
@@ -246,23 +251,26 @@ def animate_act3(seeker, seeker_mat, the_one, one_mat,
         kf_loc(the_one, ox, oy, f)
         seeker_y_out[f] = sy
 
-        # Sync Rotation (slower now too)
+        # Sync Rotation — also including continuous self-spin
         if rel_f <= 150:
             st = rel_f / 150.0 
             blend = ease_in_out_cubic(st)
-            seeker_spin += lerp(0.03, 0.005, blend)
-            one_spin += lerp(0.03, 0.005, blend)
+            seeker_spin += lerp(0.12, 0.02, blend)
+            one_spin += lerp(0.12, 0.02, blend)
             
             cur_seeker_rot = lerp(seeker_spin, target_seeker_rot, blend * 0.8) 
             cur_one_rot = lerp(one_spin, target_one_rot, blend * 0.8)
+            
+            # Subside the bobbing as they get closer to the click
+            self_bob = 0.1 * math.sin(f * 0.1) * (1.0 - blend)
             
             if rel_f > 140:
                 snap_t = (rel_f - 140)/10.0
                 cur_seeker_rot = lerp(cur_seeker_rot, target_seeker_rot, snap_t)
                 cur_one_rot = lerp(cur_one_rot, target_one_rot, snap_t)
             
-            kf_rot_z(seeker, cur_seeker_rot, f)
-            kf_rot_z(the_one, cur_one_rot, f)
+            kf_rot_z(seeker, cur_seeker_rot + self_bob, f)
+            kf_rot_z(the_one, cur_one_rot - self_bob, f)
         else:
             kf_rot_z(seeker, target_seeker_rot, f)
             kf_rot_z(the_one, target_one_rot, f)

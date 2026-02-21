@@ -27,9 +27,8 @@ from scripts.animations.finding_the_one.helpers import (
 def build_scroll_schedule():
     speed_keyframes = [
         # Prologue & Start (1-330)
-        (1,    0.0), (270, 0.0), (300, 0.03), (330, 0.03),
-        
-        # Act 1 (330-1300): Encounter slows down significantly
+        (1,    0.0), (230, 0.0), (260, 0.03), (300, 0.03),
+        (330,  0.03), 
         (630,  0.03), 
         (750,  0.02),  
         (880,  0.01),  

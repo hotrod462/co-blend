@@ -50,9 +50,13 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
             tri_screen_x = lerp(5.0, 5.2, ease_in_out_cubic(lt)) # Hesitate
         else:
             lt = (t - 0.8) / 0.2
+            # End accurately at screen-x = 2.0 to match Orbit start center_x + radius
             tri_screen_x = lerp(5.2, 2.0, ease_in_out_cubic(lt))
 
-        # Seeker Pop Notice around frame 1500 (t≈0.22)
+        # Fix wobble to be 0 at t=1.0 to prevent teleport
+        drift_x_wobble = 0.4 * math.sin(t * 2.8 * math.pi) * (1.0 - ease_in_out_cubic(max(0, (t-0.8)/0.2)))
+        
+        # Seeker Pop Notice around frame 1600 (t≈0.22)
         seeker_pop_scale = 1.0
         seeker_pop_em = 2.0
         if 1600 <= f <= 1680:
@@ -67,7 +71,6 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         drift_y = (0.5 * math.sin(t * 1.5 * math.pi)
                    + 0.4 * math.cos(t * 3.0 * math.pi)
                    + 0.3 * math.sin(t * 4.5 * math.pi))
-        drift_x_wobble = 0.4 * math.sin(t * 2.8 * math.pi)
         
         if t > 0.8:
             drift_y = lerp(drift_y, 0, (t-0.8)/0.2)
@@ -82,7 +85,9 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(iso_tri, wx + tri_screen_x + drift_x_wobble, drift_y, f)
         kf_rot_z(iso_tri, rigid_rot, f)
 
-        seeker_y = lerp(0, 0.1, ease_in_out_cubic(min(t * 1.5, 1.0)))
+        seeker_y = 0.5 * math.sin(f * 0.08) * math.cos(f * 0.05)
+        seeker_y += 0.2 * math.sin(f * 0.2)
+        
         if t > 0.9: seeker_y = lerp(seeker_y, 0, (t-0.9)/0.1) 
         seeker_y_out[f] = seeker_y
         kf_loc(seeker, wx, seeker_y, f)
@@ -147,7 +152,8 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         else:
             lt = (t - 0.4) / 0.6
             # Compute positions at t=0.4 boundary for continuity
-            angle_04 = 2.5 * math.pi + 0.4 * 0.4 * math.pi  # = 2.66*pi
+            # angle at t=0.4 was 2.5*pi + 1.0*0.4*pi = 2.9*pi
+            angle_04 = 2.9 * math.pi 
             r_04 = 0.6
             cx_04 = wx + 0.2
             iso_start_x = cx_04 + r_04 * math.cos(angle_04)
@@ -237,10 +243,10 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         kf_loc(seeker, seeker_x, seeker_y, f)
         kf_rot_z(seeker, seeker_rot, f)
 
-    # --- LEFT EXIT & FADE (2220–2500) ---
     exit_start = 2220
     exit_end = 2500
     last_rot = cur_rot
+    final_radius = radius # explicit anchor from previous block
     
     for f in range(exit_start, exit_end + 1):
         t = (f - exit_start) / (exit_end - exit_start)
@@ -265,10 +271,12 @@ def animate_act2(seeker, seeker_mat, iso_tri, iso_tri_mat,
         seeker_em = lerp(2.0, 0.4, t)
         kf_emission_strength(seeker_mat, seeker_em, f)
         
-        # Triangle Exit: Sporadic leftward
-        base_offset = lerp(-radius, -20.0, math.pow(t, 2)) # Negative radius prevents teleport
-        surge = 2.5 * (1.0 - t) * math.sin(t * 5 * math.pi)
-        if surge < 0: surge = 0
+        # Triangle Exit: Reluctant drift
+        # Use a gentler exponent (0.9 instead of 1.2) to keep it visible longer
+        base_offset = lerp(-final_radius, -25.0, math.pow(t, 0.9))
+        
+        # Surge as an additive wobble that decays, starting at 0 to avoid teleport
+        surge = 4.0 * (1.0 - t) * math.sin(t * 8 * math.pi)
         offset = base_offset + surge
         
         # Bouncing exit

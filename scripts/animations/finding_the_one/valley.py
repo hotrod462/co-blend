@@ -15,17 +15,18 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
                    seeker_world_positions, seeker_y_out, camera):
     
     start = VALLEY_START
-    # Define phase boundaries relative to start
-    phase1_end = start + 40  # Transition down
-    phase2_end = start + 90 # Flatline
-    phase3_end = start + 120 # The Turn
+    # Define phase boundaries relative to start — stretched for gradual recovery
+    phase1_end = start + 70  # Slow transition from depression
+    phase2_end = start + 110 # Brief flatline
+    phase3_end = start + 130 # The Turn starts
     end = VALLEY_END        # Glow Brightens
 
-    # Transition from Act 2 end (Y ≈ -1.8) to flatlined 0
+    # Transition from Act 2 end (Y ≈ -1.8) to flatlined 0 — much slower now
     for f in range(start, phase1_end + 1):
-        t = (f - start) / 40.0
+        t = (f - start) / 70.0
         wx = seeker_world_positions.get(f, 0)
-        base_y = lerp(-1.8, 0, ease_in_out_cubic(min(t * 2, 1.0)))
+        # Use simple cubic for a very smooth, non-abrupt rise
+        base_y = lerp(-1.8, 0, ease_in_out_cubic(t))
         wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
         y = base_y + wander * ease_in_out_cubic(t)
         seeker_y_out[f] = y
@@ -49,7 +50,7 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
         t = (f - phase2_end) / 30.0
         wx = seeker_world_positions.get(f, 0)
         one_sx = lerp(12, 9, ease_in_out_cubic(t))
-        kf_loc(the_one, wx + one_sx, lerp(0.5, 0.3, t), f)
+        kf_loc(the_one, wx + one_sx, lerp(0.5, 0.3, ease_in_out_cubic(t)), f)
         kf_emission_strength(one_mat, lerp(0.3, 1.2, ease_in_out_cubic(t)), f)
         y = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)
         seeker_y_out[f] = y
@@ -57,10 +58,10 @@ def animate_valley(seeker, seeker_mat, the_one, one_mat,
 
     # Glow brightens
     for f in range(phase3_end, end + 1):
-        t = (f - phase3_end) / 30.0
+        t = (f - phase3_end) / 20.0
         wx = seeker_world_positions.get(f, 0)
         one_sx = lerp(9, 8, ease_in_out_cubic(t))
-        kf_loc(the_one, wx + one_sx, lerp(0.3, 0.2, t), f)
+        kf_loc(the_one, wx + one_sx, lerp(0.3, 0.2, ease_in_out_cubic(t)), f)
         kf_emission_strength(one_mat, lerp(1.2, 2.0, ease_in_out_cubic(t)), f)
         base_y = lerp(0, 0.1, ease_in_out_cubic(t))
         wander = 0.15 * math.sin(f * 0.13) * math.cos(f * 0.07)

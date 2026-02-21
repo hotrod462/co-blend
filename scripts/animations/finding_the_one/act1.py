@@ -110,13 +110,22 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         elif t < 0.53:
             # Triangle excitement burst — fast spin about its own axis
             burst_t = (t - 0.40) / 0.13
-            tri_rot = (0.40 * 0.8 * math.pi) + burst_t * 4.0 * math.pi
-            seeker_rot = 0  # Seeker hasn't noticed yet
+            tri_rot = (0.40 * 0.8 * math.pi) + burst_t * 6.0 * math.pi
+            seeker_rot = 0
+        elif t < 0.65:
+            # Seeker acknowledges AFTER triangle burst
+            ack_t = (t - 0.53) / 0.12
+            tri_rot = (0.40 * 0.8 * math.pi) + 6.0 * math.pi
+            seeker_rot = ack_t * 2.5 * math.pi
         else:
             # Mutual excitement — seeker reciprocates
-            excitement_t = (t - 0.53) / 0.47
-            tri_rot = (0.40 * 0.8 * math.pi) + 4.0 * math.pi + excitement_t * 2.0 * math.pi
-            seeker_rot = excitement_t * 2.0 * math.pi
+            excitement_t = (t - 0.65) / 0.35
+            tri_rot = (0.40 * 0.8 * math.pi) + 6.0 * math.pi + excitement_t * 2.0 * math.pi
+            seeker_rot = 2.5 * math.pi + excitement_t * 2.0 * math.pi
+
+        if f == entry_end:
+            final_seeker_rot = seeker_rot
+            final_tri_rot = tri_rot
 
         kf_loc(right_tri, wx + tri_screen_x, final_drift_y, f)
         kf_rot_z(right_tri, tri_rot, f)
@@ -127,8 +136,8 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
 
 
     # --- MUTUAL ORBIT (950–1080) ---
-    seeker_spin = 2.0 * math.pi
-    tri_spin = (0.40 * 0.8 * math.pi) + 4.0 * math.pi + 2.0 * math.pi
+    seeker_spin = final_seeker_rot
+    tri_spin = final_tri_rot
     orbit_start = 950
     orbit_end = 1080
     
@@ -138,15 +147,19 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         cx = wx + lerp(1.25, 0.5, ease_in_out_cubic(t))
         cy = 0
 
-        radius = lerp(1.25, 1.2, ease_in_out_cubic(t)) # Starts at 1.25 to match initial distance
-        angle = t * 3.0 * math.pi
+        radius = lerp(1.25, 1.2, ease_in_out_cubic(t))
+        # Varied revolution speed (wobbly orbit)
+        angle = t * 3.2 * math.pi + 0.4 * math.sin(t * 2 * math.pi)
 
         kf_loc(right_tri, cx + radius * math.cos(angle), cy + radius * math.sin(angle), f)
         kf_loc(seeker, cx + radius * math.cos(angle + math.pi), cy + radius * math.sin(angle + math.pi), f)
         seeker_y_out[f] = cy + radius * math.sin(angle + math.pi)
 
-        seeker_spin += 0.02
-        tri_spin += 0.06
+        # Slower and varied axial spin
+        s_step = 0.07 * (1.0 + 0.5 * math.sin(t * 3 * math.pi))
+        t_step = 0.11 * (1.0 + 0.5 * math.cos(t * 3 * math.pi))
+        seeker_spin += s_step
+        tri_spin += t_step
         kf_rot_z(seeker, seeker_spin, f)
         kf_rot_z(right_tri, tri_spin, f)
         
@@ -156,6 +169,12 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         pulse_em = 2.0 + 0.8 * (0.5 + 0.5 * math.sin(phase))
         kf_emission_strength(seeker_mat, pulse_em, f)
         kf_emission_strength(right_tri_mat, pulse_em, f)
+
+        # Store angle for tease phase continuity
+        if f == orbit_end:
+            final_orbit_angle = angle
+            final_orbit_radius = radius
+            final_orbit_cx_offset = cx - wx
 
     # --- TEASE & BONK (1080–1120) ---
     # Compute exact positions at orbit end (f=1080) to prevent teleportation.
@@ -167,22 +186,19 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         t = (f - tease_start) / (tease_end - tease_start)
         wx = seeker_world_positions.get(f, 0)
         
-        # At orbit end (t_orbit=1.0): cx_end = wx_1080 + 0.5, angle=3*pi, radius=1.2
-        # cos(3*pi) = -1, sin(3*pi) = 0
-        # So tri was at (cx_end - 1.2, 0), seeker at (cx_end + 1.2, 0)
-        # But wx changes each frame. Use orbit's cx formula at this frame.
-        orbit_cx = wx + lerp(1.25, 0.5, 1.0)  # = wx + 0.5
+        # Use stored values from orbit end for perfect continuity
+        orbit_cx = wx + final_orbit_cx_offset
 
-        seeker_spin += lerp(0.02, 0.005, t)
-        tri_spin += lerp(0.06, 0.02, t)
+        seeker_spin += lerp(0.25, 0.10, t)
+        tri_spin += lerp(0.35, 0.15, t)
 
         if t < 0.5:
             lt = t / 0.5
             # Continue orbit: angle advances slightly, radius shrinks toward contact
-            angle = 3.0 * math.pi + lt * 0.3 * math.pi
-            radius = lerp(1.2, 0.4, ease_in_out_cubic(lt))
-            # Smoothly shift cx from orbit_cx (0.5 offset) toward 0.3
-            cx = wx + lerp(0.5, 0.3, ease_in_out_cubic(lt))
+            angle = final_orbit_angle + lt * 0.3 * math.pi
+            radius = lerp(final_orbit_radius, 0.4, ease_in_out_cubic(lt))
+            # Smoothly shift cx from orbit_cx toward 0.3
+            cx = wx + lerp(final_orbit_cx_offset, 0.3, ease_in_out_cubic(lt))
             cy = 0
             tri_x = cx + radius * math.cos(angle)
             tri_y = cy + radius * math.sin(angle)
@@ -239,17 +255,20 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
              kf_loc(seeker, wx, recoil_y, f)
              seeker_spin = lerp(seeker_spin, 0, rt)
         else:
-             seeker_y_out[f] = 1.2
-             kf_loc(seeker, wx, 1.2, f)
+             # Stunned/Processing wobble (Y=1.2 ± noise)
+             lt = (t - 0.3) / 0.7
+             y = 1.2 + 0.05 * math.sin(f * 0.2) * (1.0 - lt)
+             seeker_y_out[f] = y
+             kf_loc(seeker, wx, y, f)
              kf_rot_z(seeker, 0, f)
         
         # Triangle Exit: Sporadic comeback logic
-        # base drift: slower power curve for lingering
-        base_offset = lerp(-1.05, -12.0, math.pow(t, 3.0))
+        # Even flatter curve to keep it centered on screen longer
+        base_offset = lerp(-1.05, -12.0, math.pow(t, 0.8))
         
-        # Surges: Two clear hesitations
+        # Surges: Two clear hesitations — reduced amplitude and better centering
         surge_phase = t * 4.5 * math.pi
-        surge = 8.0 * (1.0 - t) * math.sin(surge_phase)
+        surge = 4.0 * (1.0 - t) * math.sin(surge_phase)
         
         offset = base_offset + surge
         
@@ -266,9 +285,9 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
              kf_emission_strength(right_tri_mat, 2.0, f)
              
     # Ghost: Right-angle triangle lingers as a faint ghost at left edge
-    # Fades from emission 0.12 → 0 over ~250 frames (visual metaphor: past fading)
+    # Fades from emission 0.12 → 0 over ~400 frames (visual metaphor: past fading)
     ghost_start = 1351
-    ghost_end = 1600
+    ghost_end = 1750
     for f in range(ghost_start, ghost_end + 1):
         gt = (f - ghost_start) / (ghost_end - ghost_start)
         wx = seeker_world_positions.get(f, 0)
@@ -300,13 +319,12 @@ def animate_act1(seeker, seeker_mat, right_tri, right_tri_mat,
         elif pause_start <= f <= pause_end:
             # The pause: Seeker stops Y-drift, just stands still
             y = seeker_y_out.get(pause_start - 1, 0)
-        elif t < 0.7:
-            # Cautious, reduced wandering (amplitude ±0.3 instead of ±0.5)
-            lt = (t - 0.3) / 0.4
-            y = lerp(0.0, -0.3, ease_in_out_cubic(lt))
-            y += 0.08 * math.sin(f * 0.1)  # Gentler noise
         else:
-            y = lerp(-0.3, 0.0, ease_in_out_cubic((t - 0.7) / 0.3))
+            # Searching again — substantial wandering
+            # Add noise with higher amplitude so it's not a straight line
+            search_t = (f - pause_end) / (gap_end - pause_end)
+            y = 0.5 * math.sin(f * 0.08) * math.cos(f * 0.05)
+            y += 0.2 * math.sin(f * 0.2)
 
         seeker_y_out[f] = y
         kf_loc(seeker, wx, y, f)

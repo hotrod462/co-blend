@@ -151,23 +151,24 @@ def animate_prologue(parent_a, parent_a_mat, parent_b, parent_b_mat,
     # ── Beat P.5: Departure (Frames 210–330) ─────────────────
     # Seeker alone in frame at center. Holds still, then journey begins.
 
-    # Seeker holds at center (210–250)
-    for f in range(210, 251):
+    # Seeker holds at center (210–230)
+    for f in range(210, 231):
         wx = seeker_world_positions.get(f, 0)
         kf_loc(seeker, wx, center_y, f)
         kf_scale(seeker, 1.0, f)
         kf_emission_strength(seeker_mat, 2.0, f)
 
     # Seeker heartbeat pulse begins
-    apply_pulse(seeker, 240, 270, period=45, amplitude=0.03)
+    apply_pulse(seeker, 220, 250, period=45, amplitude=0.03)
 
-    # World scroll begins (270–330): handled by systems.py scroll schedule
+    # World scroll begins (230–330): handled by systems.py scroll schedule
     # Seeker position transitions to following scroll
-    for f in range(250, PROLOGUE_END + 1):
+    for f in range(230, PROLOGUE_END + 1):
         wx = seeker_world_positions.get(f, 0)
-        t = (f - 250) / max(PROLOGUE_END - 250, 1)
-        sy = 0  # Start centered, the scroll system moves the world
+        t = (f - 230) / max(PROLOGUE_END - 230, 1)
+        # Subtle organic bobbing starts immediately with the scroll
+        sy = 0.15 * math.sin(f * 0.15) * t 
         kf_loc(seeker, wx, sy, f)
 
     # Continuous pulse for the latter half of prologue
-    apply_pulse(seeker, 270, PROLOGUE_END, period=45, amplitude=0.03)
+    apply_pulse(seeker, 250, PROLOGUE_END, period=45, amplitude=0.03)

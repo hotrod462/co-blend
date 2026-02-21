@@ -126,9 +126,9 @@ SEEKER_EMISSION_CURVE = [
 # Shifted keyframes
 BG_DENSITY_CURVE = [
     (1,    0),
-    (270,  0),
-    (300,  3),
-    (330,  7),
+    (220,  0),
+    (250,  3),
+    (280,  7),
     
     # Act 1 (330-1300)
     (630,  8),
